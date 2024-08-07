@@ -63,11 +63,7 @@ if [ "$confirm" = true ]; then
   dnf_flags="-y"
 fi
 
-# Starting system updates message
-print_title "STARTING SYSTEM UPDATES"
-
-# Install necessary dependencies if not already installed
-print_header "Checking for necessary dependencies"
+# Check for and install necessary dependencies
 missing_packages=()
 for pkg in rpmconf flatpak remove-retired-packages; do
   if ! command -v "$pkg" &> /dev/null; then
@@ -77,77 +73,73 @@ done
 if [ ${#missing_packages[@]} -gt 0 ]; then
   echo "Installing missing dependencies: ${missing_packages[*]}"
   sudo dnf install $dnf_flags "${missing_packages[@]}"
-else
-  color_green "All necessary dependencies are already installed."
+  echo "Complete!"
 fi
+
+# Starting system updates message
+print_title "STARTING SYSTEM UPDATES"
 
 # Refreshing the DNF cache only if not skipping clean cache
 if [ "$skip_clean_cache" = false ]; then
-  print_header "Refreshing the DNF cache"
+  print_header "Refreshing DNF Cache"
   sudo dnf makecache --refresh $dnf_flags
-  color_green "Complete!"
 fi
 
 # Update all packages
-print_header "Updating all packages"
-if sudo dnf update $dnf_flags | grep -q "Nothing to do"; then
-  color_green "Nothing to do."
-else
-  color_green "Complete!"
-fi
+print_header "Updating DNF Packages"
+sudo dnf update $dnf_flags
 
 # Handling RPM configuration files
-print_header "Handling leftover RPM configuration files"
-sudo rpmconf -a
-color_green "Complete!"
+print_header "Handling Leftover RPM Configuration Files"
+echo "Looking for leftover configuration files…"
+rpmFiles=$(sudo rpmconf -a | tee /dev/tty)
+# Check if there was any output
+if [ -n "$rpmFiles" ]; then
+  echo "$rpmFiles"
+  echo "Complete!"
+else
+  echo "Nothing to do."
+fi
 
 # Checking for and installing security updates
 if [ "$skip_security" = false ]; then
-  print_header "Checking for security updates"
-  if sudo dnf check-update --security | grep -q "Security"; then
-    echo "Installing security updates"
-    if sudo dnf update --security $dnf_flags | grep -q "Nothing to do"; then
-      color_green "Nothing to do."
-    else
-      color_green "Complete!"
-    fi
+  print_header "Security Updates"
+  echo "Looking for security updates…"
+  # Store the output of the security check
+  securityUpdates=$(sudo dnf check-update --security)
+  if echo "$securityUpdates" | grep -q "Security"; then
+    echo "Installing Security Updates"
+    # Install the security updates
+    sudo dnf update --security $dnf_flags
   else
-    color_green "No security updates found."
+    echo "Nothing to do."
   fi
 fi
 
 # Cleaning up old packages
-print_header "Cleaning up old packages..."
-if sudo dnf autoremove $dnf_flags | grep -q "Nothing to do"; then
-  color_green "Nothing to do."
-else
-  color_green "Complete!"
+print_header "Cleaning Up Old Packages"
+echo "Looking for old packages…"
+autoRemove=$(sudo dnf autoremove $dnf_flags)
+if echo "$autoRemove" | grep -q "Nothing to do"; then
+  echo "Nothing to do."
+else 
+  echo "$autoRemove"
 fi
 
 # Updating Flatpak packages and removing unused ones
 if [ "$skip_flatpak" = false ]; then
-  print_header "Updating Flatpak packages..."
-  if flatpak update $dnf_flags | grep -q "Nothing to do"; then
-    color_green "Nothing to do."
-  else
-    color_green "Complete!"
-  fi
-  print_header "Removing unused Flatpak packages..."
-  if flatpak uninstall --unused | grep -q "Nothing to do"; then
-    color_green "Nothing to do."
-  else
-    color_green "Complete!"
-  fi
+  print_header "Updating Flatpak Packages"
+  flatpak update $dnf_flags
+
+  print_header "Removing Unused Flatpak Packages"
+  echo "Looking for unused Flatpak packages…"
+  flatpak uninstall --unused $dnf_flags
 fi
 
 # Cleaning up all cached package data
 if [ "$skip_clean_cache" = false ]; then
-  print_header "Cleaning up all cached package data..."
-  if sudo dnf clean all | grep -q "Nothing to do"; then
-    color_green "Nothing to do."
-  else
-    color_green "Complete!"
-  fi
+  print_header "Cleaning Up Cached Package Data"
+  sudo dnf clean all
 fi
 
 echo
@@ -157,18 +149,18 @@ color_blue "1. Reboot"
 color_blue "2. Power-off"
 color_blue "3. Exit (Done)"
 
-read -t 10 -p "Enter your choice [1-3] (default is 3): " choice
+read -t 12 -p "Enter your choice [1-3] (default is 3): " choice
 
 # Default to 3 if no choice is entered within the timeout
 choice=${choice:-3}
 
 case $choice in
   1)
-    color_blue "Rebooting system..."
+    color_blue "Rebooting system"
     sudo reboot
     ;;
   2)
-    color_blue "Powering off system..."
+    color_blue "Powering off system"
     sudo poweroff
     ;;
   3)
