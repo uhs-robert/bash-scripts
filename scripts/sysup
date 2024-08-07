@@ -1,0 +1,181 @@
+#!/bin/bash
+
+# Source the utilities file
+source "$(dirname "$0")/bash_utilities"
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename "$0") [OPTIONS]"
+  echo "This script performs a comprehensive system update on Fedora, including DNF package updates, security updates,"
+  echo "cleanup of old packages, updating Flatpak packages, and cleaning up cached package data."
+  print_header "Options:"
+  echo -e "  $(color_bold_blue "-s, --skip-security")     Skip security updates."
+  echo -e "  $(color_bold_blue "-f, --skip-flatpak")      Skip Flatpak updates."
+  echo -e "  $(color_bold_blue "-c, --skip-clean-cache")  Skip cleaning the DNF cache."
+  echo -e "  $(color_bold_blue "-n, --no-confirm")        Run DNF commands without the '-y' flag to require user confirmation."
+  echo -e "  $(color_bold_blue "-h, --help")              Display this help message."
+  print_header "Examples:"
+  echo -e "  $(color_blue "$(basename "$0")")                      Run the script to perform system updates with auto-confirmation."
+  echo -e "  $(color_blue "$(basename "$0") -s")                   Perform system updates without checking for security updates."
+  echo -e "  $(color_blue "$(basename "$0") -f")                   Perform system updates without updating Flatpak packages."
+  echo -e "  $(color_blue "$(basename "$0") -c")                   Perform system updates without cleaning the DNF cache."
+  echo -e "  $(color_blue "$(basename "$0") -n")                   Perform system updates with user confirmation for each DNF operation."
+  echo -e "  $(color_blue "$(basename "$0") -s -f -c")             Combine multiple options to skip security updates, Flatpak updates, and DNF cache cleaning."
+  exit 0
+}
+
+# Default values for options
+skip_security=false
+skip_flatpak=false
+skip_clean_cache=false
+confirm=true
+
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -s|--skip-security)
+      skip_security=true
+      ;;
+    -f|--skip-flatpak)
+      skip_flatpak=true
+      ;;
+    -c|--skip-clean-cache)
+      skip_clean_cache=true
+      ;;
+    -n|--no-confirm)
+      confirm=false
+      ;;
+    -h|--help)
+      show_help
+      ;;
+    *)
+      color_red "Unknown option: $1"
+      show_help
+      ;;
+  esac
+  shift
+done
+
+# Set DNF flags
+dnf_flags=""
+if [ "$confirm" = true ]; then
+  dnf_flags="-y"
+fi
+
+# Starting system updates message
+print_title "STARTING SYSTEM UPDATES"
+
+# Install necessary dependencies if not already installed
+print_header "Checking for necessary dependencies"
+missing_packages=()
+for pkg in rpmconf flatpak remove-retired-packages; do
+  if ! command -v "$pkg" &> /dev/null; then
+    missing_packages+=("$pkg")
+  fi
+done
+if [ ${#missing_packages[@]} -gt 0 ]; then
+  echo "Installing missing dependencies: ${missing_packages[*]}"
+  sudo dnf install $dnf_flags "${missing_packages[@]}"
+else
+  color_green "All necessary dependencies are already installed."
+fi
+
+# Refreshing the DNF cache only if not skipping clean cache
+if [ "$skip_clean_cache" = false ]; then
+  print_header "Refreshing the DNF cache"
+  sudo dnf makecache --refresh $dnf_flags
+  color_green "Complete!"
+fi
+
+# Update all packages
+print_header "Updating all packages"
+if sudo dnf update $dnf_flags | grep -q "Nothing to do"; then
+  color_green "Nothing to do."
+else
+  color_green "Complete!"
+fi
+
+# Handling RPM configuration files
+print_header "Handling leftover RPM configuration files"
+sudo rpmconf -a
+color_green "Complete!"
+
+# Checking for and installing security updates
+if [ "$skip_security" = false ]; then
+  print_header "Checking for security updates"
+  if sudo dnf check-update --security | grep -q "Security"; then
+    echo "Installing security updates"
+    if sudo dnf update --security $dnf_flags | grep -q "Nothing to do"; then
+      color_green "Nothing to do."
+    else
+      color_green "Complete!"
+    fi
+  else
+    color_green "No security updates found."
+  fi
+fi
+
+# Cleaning up old packages
+print_header "Cleaning up old packages..."
+if sudo dnf autoremove $dnf_flags | grep -q "Nothing to do"; then
+  color_green "Nothing to do."
+else
+  color_green "Complete!"
+fi
+
+# Updating Flatpak packages and removing unused ones
+if [ "$skip_flatpak" = false ]; then
+  print_header "Updating Flatpak packages..."
+  if flatpak update $dnf_flags | grep -q "Nothing to do"; then
+    color_green "Nothing to do."
+  else
+    color_green "Complete!"
+  fi
+  print_header "Removing unused Flatpak packages..."
+  if flatpak uninstall --unused | grep -q "Nothing to do"; then
+    color_green "Nothing to do."
+  else
+    color_green "Complete!"
+  fi
+fi
+
+# Cleaning up all cached package data
+if [ "$skip_clean_cache" = false ]; then
+  print_header "Cleaning up all cached package data..."
+  if sudo dnf clean all | grep -q "Nothing to do"; then
+    color_green "Nothing to do."
+  else
+    color_green "Complete!"
+  fi
+fi
+
+echo
+print_title "SYSTEM UPDATES COMPLETED"
+echo "What would you like to do next?"
+color_blue "1. Reboot"
+color_blue "2. Power-off"
+color_blue "3. Exit (Done)"
+
+read -t 10 -p "Enter your choice [1-3] (default is 3): " choice
+
+# Default to 3 if no choice is entered within the timeout
+choice=${choice:-3}
+
+case $choice in
+  1)
+    color_blue "Rebooting system..."
+    sudo reboot
+    ;;
+  2)
+    color_blue "Powering off system..."
+    sudo poweroff
+    ;;
+  3)
+    color_blue "Exiting script."
+    exit
+    ;;
+  *)
+    color_red "Invalid choice. Please choose 1, 2, or 3."
+    ;;
+esac

@@ -1,2 +1,4 @@
-# bash-scripts
-Bash scripts for linux
+# Bash Scripts for Linux
+These are scripts to be used on Linux for accomplishing various different tasks quickly.
+- Each script should be given 
+

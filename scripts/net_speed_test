@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Source the utilities file
+source "$(dirname "$0")/bash_utilities"
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename "$0") [OPTIONS]"
+  echo "This script installs speedtest-cli if not already installed, runs a network speed test, and logs the results."
+  print_header "Options:"
+  echo -e "  $(color_bold_blue "-h, --help")           Display this help message."
+  print_header "Examples:"
+  echo -e "  $(color_blue "$(basename "$0")")                  Run the network speed test and log the results."
+  exit 0
+}
+
+# Check for help option
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  show_help
+fi
+
+# Begin operation
+print_title "BEGIN NETWORK SPEED TEST"
+
+# Install speedtest-cli if not already installed
+if ! command -v speedtest-cli &> /dev/null; then
+  echo "Installing speedtest-cli..."
+  sudo dnf install -y speedtest-cli
+fi
+
+# Run speed test and log the results
+print_header "Running Network Speed Test"
+speedtest-cli | tee -a ~/network_speed.log
+
+# End operation
+print_title "NETWORK SPEED TEST COMPLETE"
+echo "Network speed test results have been logged to ~/network_speed.log."

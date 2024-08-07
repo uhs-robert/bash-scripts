@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# Color functions
+# Display text in green
+color_green() {
+  echo -e "\033[32m$1\033[0m"
+}
+
+# Display text in red
+color_red() {
+  echo -e "\033[31m$1\033[0m"
+}
+
+# Display text in blue
+color_blue() {
+  echo -e "\033[38;5;33m$1\033[0m"
+}
+
+# Display text in bold blue
+color_bold_blue() {
+  echo -e "\033[1;34m$1\033[0m"
+}
+
+# Display text in orange
+color_orange() {
+  echo -e "\033[38;5;208m$1\033[0m"
+}
+
+# Display text in cyan
+color_cyan() {
+  echo -e "\033[36m$1\033[0m"
+}
+
+# Function to print a section header
+print_header() {
+  local header=$1
+  local length=${#header}
+  local border=$(printf "%-${length}s" " " | sed "s/ /─/g")
+  echo ""
+  color_orange "$header"
+  color_orange "$border"
+}
+
+# Function to print a centered title with a full-width border
+print_title() {
+  local title="$1"
+  local title_upper=$(echo "$title" | tr '[:lower:]' '[:upper:]')  # Convert title to uppercase
+  local width=$(tput cols)  # Get the current terminal width
+  local title_length=${#title_upper}
+  local border_length=$(( (width - title_length - 2) / 2 ))  # Calculate border length for both sides
+
+  # Create the border using the line character
+  local border=$(printf "%-${border_length}s" " " | sed "s/ /─/g")  # Replace spaces with lines
+
+  # Print the full-width line with the title centered
+  color_cyan "${border} ${title_upper} ${border}"
+}
+
+# Function to log a message with a timestamp
+log_message() {
+  local message="$1"
+  echo -e "$(color_cyan "$(date '+%Y-%m-%d %H:%M:%S')") - $message"
+}
+
+# Function to handle errors and log a message
+handle_error() {
+  local exit_code=$1
+  local message="$2"
+  if [ $exit_code -ne 0 ]; then
+    log_message "$message"
+    exit $exit_code
+  fi
+}
+
+# Function to prompt for user confirmation
+confirm_action() {
+  read -p "$1 (y/n): " -n 1 -r
+  echo    # Move to a new line
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    return 1
+  fi
+  return 0
+}
+
+# Function to check if a command is installed
+check_dependency() {
+  command -v "$1" >/dev/null 2>&1 || { echo >&2 "$(color_red "Error: $1 is not installed. Please install it.")"; exit 1; }
+}
+
+# Function to pause execution for a specified number of seconds
+wait_for() {
+  local seconds=$1
+  log_message "Waiting for $seconds seconds..."
+  sleep "$seconds"
+}
+
+# Function to log a message and exit with an error
+exit_with_message() {
+  local message="$1"
+  log_message "$message"
+  exit 1
+}

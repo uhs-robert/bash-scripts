@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# Source the formatting functions (if applicable)
+source "$(dirname "$0")/bash_utilities"
+
+# Initialize variables
+delete_original=false
+file_type="*"
+archive_format="zip"
+target_directory="."
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename $0) [OPTIONS] [DIRECTORY]"
+  echo "This script compresses files in the specified directory (or current directory if not provided) using the specified archive format."
+  print_header "Options:"
+  echo "  $(color_bold_blue '-d')                   Delete original files after compression."
+  echo "  $(color_bold_blue '-f <file_type>')       Specify the file type to compress (default is '*')."
+  echo "  $(color_bold_blue '-a <archive_format>')  Specify the archive format: zip, 7z, rar, tar, tar.gz, tar.bz2 (default is 'zip')."
+  echo "  $(color_bold_blue '-h, --help')           Display this help message."
+  print_header "Examples:"
+  echo "  $(color_blue "$(basename "$0") -d -f *.txt -a zip /directory/path")  Compress all .txt files into .zip in the specified directory, delete originals."
+  echo "  $(color_blue "$(basename "$0") -f *.log -a tar.gz")                     Compress all .log files into tar.gz in the current directory."
+  exit 0
+}
+
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -d)
+      delete_original=true
+      ;;
+    -f)
+      shift
+      file_type="$1"
+      ;;
+    -a)
+      shift
+      archive_format="$1"
+      ;;
+    -h|--help)
+      show_help
+      ;;
+    *)
+      if [[ -d "$1" ]]; then
+        target_directory="$1"
+      else
+        color_red "Unknown option or invalid directory: $1"
+        show_help
+      fi
+      ;;
+  esac
+  shift
+done
+
+# Begin operation
+print_title "BEGIN FILE COMPRESSION"
+
+# Loop through all files of the specified type in the target directory
+for file in "$target_directory"/$file_type; do
+  if [ -f "$file" ]; then # Check if it is a file
+    # Compress the file into the current directory
+    case "$archive_format" in
+      zip) 
+        zip -v "${file%.*}.zip" "$file" 
+        ;;
+      7z)  
+        7z a "${file%.*}.7z" "$file" | tee /dev/tty
+        ;;
+      rar) 
+        rar a "${file%.*}.rar" "$file" | tee /dev/tty
+        ;;
+      tar) 
+        tar -cvf "${file%.*}.tar" "$file" 
+        ;;
+      tar.gz) 
+        tar -czvf "${file%.*}.tar.gz" "$file" 
+        ;;
+      tar.bz2) 
+        tar -cjvf "${file%.*}.tar.bz2" "$file" 
+        ;;
+      *) 
+        color_red "Unsupported archive format: $archive_format" 
+        ;;
+    esac
+
+    # Delete the original file if the '-d' option is provided
+    if [ "$delete_original" == true ]; then
+      rm "$file"
+    fi
+  fi
+done
+color_green "Complete!"
+
+# End operation
+print_title "FILE COMPRESSION COMPLETE"
+echo "All files matching $file_type in $target_directory have been compressed to $archive_format format."

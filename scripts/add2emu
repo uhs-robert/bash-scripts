@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# Source the formatting functions
+source "$(dirname "$0")/bash_utilities"
+
+# Set global variables
+user=$(whoami)
+base_path="/run/media/$user/SHARE"
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename "$0") <emulator_name> [type]"
+  echo "This script moves all files from the current directory to a specified emulator folder."
+  echo "The emulator folder is determined by the emulator name and the type specifies the base folder."
+  print_header "Options:"
+  echo -e "  $(color_bold_blue "<emulator_name>")       The name of the emulator folder where files will be moved."
+  echo -e "  $(color_bold_blue "[type]")                The base folder type. Can be 'rom' (default) or 'music'."
+  echo -e "  $(color_bold_blue "-h, --help")            Display this help message."
+  print_header "Examples:"
+  echo -e "  $(color_blue "$(basename "$0") emulator_name")                Moves rom files to emulator_name."
+  echo -e "  $(color_blue "$(basename "$0") emulator_name music")          Moves music files to emulator_name."
+  exit 0
+}
+
+
+# Check for help option
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  show_help
+fi
+
+# Check if the emulator name parameter is provided
+if [ -z "$1" ]; then
+  color_red "Error: No emulator name specified."
+  echo "Usage: $(basename "$0") <emulator_name> [type]"
+  exit 1
+fi
+
+# Check if the external media is connected
+if ! mount | grep -q $base_path; then
+  color_red "Error: No external media found at $base_path."
+  exit 1
+fi
+
+# Set the type to "rom" by default
+type="rom"
+
+# Check if the type parameter is provided
+if [ -n "$2" ]; then
+  type="$2"
+fi
+
+# Define the base path based on the type
+if [ "$type" == "music" ]; then
+  base_path+="/music"
+else
+  base_path+="/roms"
+fi
+
+# Define the destination directory
+destination="$base_path/$1"
+
+# Begin operation
+print_title "Moving Files to Emulator Directory"
+
+# Check if pv is installed
+print_header "Checking Dependencies"
+if ! command -v pv &> /dev/null; then
+  color_red "Error: pv is not installed. Installing..."
+  sudo dnf install -y pv
+else
+  color_green "pv is already installed."
+fi
+
+# Check if the destination directory exists, create if it doesn't
+print_header "Checking for Emulator Directory"
+if [ ! -d "$destination" ]; then
+  echo "Directory does not exist. Creating Emulator Directory: $destination"
+  sudo mkdir -p "$destination"
+else 
+  echo "Directory found: $destination"
+fi
+
+# Move all files from the current directory to the destination directory
+print_header "Moving Files to Emulator Directory"
+for file in *; do
+  if [ -f "$file" ]; then
+    file_size=$(stat -c%s "$file")
+    echo "Moving $file ($file_size bytes)..."
+    
+    # Move the file using pv for progress
+    sudo pv -p -t -e -s "$file_size" "$file" > "$destination/$file"
+
+    # Check if the move was successful
+    if [ $? -eq 0 ]; then
+      rm "$file"  # Remove the original file
+    else
+      color_red "Failed to move $file"
+    fi
+  fi
+done
+
+print_title "Files moved to Emulator Directory"
+color_blue "Emulator Directory: $destination."

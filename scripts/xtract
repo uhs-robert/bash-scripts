@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Source the formatting functions
+source "$(dirname "$0")/bash_utilities"
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename "$0") [-d] <file_type>"
+  echo "This script extracts files of the specified type from the current directory."
+  echo
+  print_header "Options:"
+  echo -e "  $(color_bold_blue "-d")               Extract files into their own directories named after the file."
+  echo -e "  $(color_bold_blue "<file_type>")      The type of files to extract (e.g., .zip, .tar, .gz)."
+  echo
+  print_header "Examples:"
+  echo -e "  $(color_blue "$(basename "$0") .zip")                        Extract all .zip files in the current directory."
+  echo -e "  $(color_blue "$(basename "$0") -d .tar")                   Extract all .tar files into their own directories."
+  exit 0
+}
+
+# Check for help option
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  show_help
+fi
+
+# Check if the '-d' option is provided
+if [ "$1" == "-d" ]; then
+  use_directory=true
+  shift # Shift the parameters to access the file type parameter
+else
+  use_directory=false
+fi
+
+# Check if a file type is provided
+if [ -n "$1" ]; then
+  file_type="$1"
+else
+  color_red "Error: No file type specified."
+  show_help
+fi
+
+# Begin operation
+print_title "BEGIN FILE EXTRACTION"
+
+# Loop through all files of the specified type in the current directory
+for file in *"$file_type"; do
+  echo "Extracting file: $file"
+  if [ "$use_directory" == true ]; then
+    # Create a directory named after the file (without the file extension)
+    dir="${file%.*}"
+    mkdir -p "$dir"
+    # Extract the file into the newly created directory
+    case "$file_type" in
+      .zip) unzip "$file" -d "$dir" ;;
+      .tar) tar -xf "$file" -C "$dir" ;;
+      .tar.gz) tar -xzf "$file" -C "$dir" ;;
+      .tar.bz2) tar -xjf "$file" -C "$dir" ;;
+      .7z) 7z x "$file" -o"$dir" ;;
+      .rar) unrar x "$file" "$dir" ;;
+      .tar.xz) tar -xJf "$file" -C "$dir" ;;
+      .gz) gunzip -c "$file" > "$dir/${file%.*}" ;;
+      .bz2) bunzip2 -c "$file" > "$dir/${file%.*}" ;;
+      *) color_red "Unsupported file type: $file_type" ;;
+    esac
+  else
+    # Extract the file into the current directory
+    case "$file_type" in
+      .zip) unzip "$file" -d . ;;
+      .tar) tar -xf "$file" -C . ;;
+      .tar.gz) tar -xzf "$file" -C . ;;
+      .tar.bz2) tar -xjf "$file" -C . ;;
+      .7z) 7z x "$file" -o. ;;
+      .rar) unrar x "$file" ;;
+      .tar.xz) tar -xJf "$file" -C . ;;
+      .gz) gunzip -c "$file" > "${file%.*}" ;;
+      .bz2) bunzip2 -c "$file" > "${file%.*}" ;;
+      *) color_red "Unsupported file type: $file_type" ;;
+    esac
+  fi
+done
+
+# End operation
+print_title "FILE EXTRACTION COMPLETE"

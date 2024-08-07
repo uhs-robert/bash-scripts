@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# Source the formatting functions
+source "$(dirname "$0")/bash_utilities"
+
+# Function to display help information
+#!/bin/bash
+
+# Source the formatting functions
+source "$(dirname "$0")/bash_utilities"
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename "$0") [OPTIONS] [DIRECTORY|FILE]"
+  echo "This script converts various document formats to PDF using LibreOffice."
+  echo "Supported formats include .doc, .docx, .odt, .rtf, .txt, and .html."
+  print_header "Options:"
+  echo -e "  $(color_bold_blue "-h, --help")          Display this help message."
+  echo -e "  $(color_bold_blue "[DIRECTORY|FILE]")    Directory to loop through or specific file to convert. If none are provided, the current directory is used."
+  print_header "Examples:"
+  echo -e "  $(color_blue "$(basename "$0") path/to/directory")                Convert all supported files in the directory to PDF."
+  echo -e "  $(color_blue "$(basename "$0") path/to/my_file.doc")              Convert 'my_file.doc' to PDF from the specified directory."
+  echo -e "  $(color_blue "$(basename "$0")")                                  Convert all supported files in the current directory to PDF."
+  exit 0
+}
+
+# Check if LibreOffice is installed
+if ! command -v libreoffice &> /dev/null; then
+  color_red "LibreOffice is required but not installed. Please install LibreOffice to use this script."
+  exit 1
+fi
+
+# Parse command line options
+while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
+  case $1 in
+    -h | --help )
+      show_help
+      ;;
+    * )
+      color_red "Invalid option: $1"
+      show_help
+      ;;
+  esac
+  shift
+done
+
+# Check if a directory or file is provided
+if [ -n "$1" ]; then
+  if [ -d "$1" ]; then
+    target_dir="$1"
+  elif [ -f "$1" ]; then
+    target_file="$1"
+  else
+    color_red "Error: $1 is not a valid directory or file."
+    exit 1
+  fi
+else
+  target_dir="."
+fi
+
+# Supported document formats
+file_types=("*.doc" "*.docx" "*.odt" "*.rtf" "*.txt" "*.html")
+
+# Function to convert files
+convert_files() {
+  for file_type in "${file_types[@]}"; do
+    for file in $file_type; do
+      if [ -f "$file" ]; then # Check if it is a file
+        echo "Converting $file to PDF..."
+        
+        # Convert the file to PDF
+        libreoffice --headless --convert-to pdf "$file" && echo "Output placed in the same directory as $file"
+      fi
+    done
+  done
+}
+
+# Begin operation
+print_title "BEGIN PDF CONVERSION"
+
+# Convert specific file if provided
+if [ -n "$target_file" ]; then
+  print_header "Converting File to PDF"
+  echo "Converting $target_file to PDF..."
+  libreoffice --headless --convert-to pdf "$target_file" && echo "Output placed in the same directory as $target_file"
+else
+  # Loop through all supported document files in the target directory
+  cd "$target_dir" || exit
+  print_header "Converting files in $target_dir"
+  convert_files
+fi
+
+# End operation
+print_title "PDF CONVERSION COMPLETE"
+echo "PDF directory: $target_dir"

@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Source the formatting functions (if applicable)
+source "$(dirname "$0")/bash_utilities"
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename "$0") [OPTIONS] [DIRECTORY]"
+  echo "This script finds and deletes empty directories."
+  print_header "Options:"
+  echo -e "  $(color_bold_blue "-h, --help")     Display this help message."
+  echo -e "  $(color_bold_blue "[DIRECTORY]")    The directory to search for empty directories. If not provided, defaults to the current directory."
+  print_header "Examples:"
+  echo -e "  $(color_blue "$(basename "$0") /path/to/directory")  Find and delete empty directories in the specified directory."
+  echo -e "  $(color_blue "$(basename "$0")")                     Find and delete empty directories in the current directory."
+  exit 0
+}
+
+
+# Parse command line options
+while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
+  case $1 in
+    -h | --help )
+      show_help
+      ;;
+    * )
+      echo "Invalid option: $1" 1>&2
+      show_help
+      ;;
+  esac
+  shift
+done
+
+# Set the target directory
+if [ -n "$1" ]; then
+  target_dir="$1"
+else
+  target_dir="."
+fi
+
+# Check if the provided target is a directory
+if [ ! -d "$target_dir" ]; then
+  color_red "Error: $target_dir is not a valid directory."
+  exit 1
+fi
+
+# Begin operation
+print_title "BEGIN EMPTY DIRECTORY DELETION"
+
+# Find empty directories in the target directory recursively
+print_header "Finding Empty Directories in $target_dir"
+empty_dirs=$(find "$target_dir" -type d -empty)
+
+# Output each empty directory before deletion
+if [ -n "$empty_dirs" ]; then
+  echo "The following empty directories will be deleted:"
+  echo "$empty_dirs"
+  
+  # Ask for confirmation before deletion
+  if confirm_action "Do you want to proceed with deletion? (y/n)"; then
+    # Delete the empty directories
+    find "$target_dir" -type d -empty -delete
+    echo "Empty directories have been deleted."
+  else
+    echo "Deletion canceled."
+  fi
+else
+  echo "No empty directories found in $target_dir."
+fi
+
+# End operation
+print_title "EMPTY DIRECTORY DELETION COMPLETE"

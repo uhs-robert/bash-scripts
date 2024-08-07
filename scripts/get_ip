@@ -1,0 +1,2 @@
+ #!/bin/bash
+echo "IP Address: $(curl -s ifconfig.me)"
