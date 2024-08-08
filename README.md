@@ -61,16 +61,30 @@ This script is designed to find and delete empty directories within a specified 
 - **Help information** provided to guide users on how to use the script.
 
 ## compress_files
-This script compresses specified files or directories into a .zip format, useful for storage and transfer.
+This script compresses files in a specified directory (or the current directory if none is provided) using the chosen archive format. It allows users to delete original files after compression and customize the file types to compress.
+### Features
+- **Supports multiple archive formats**: zip, 7z, rar, tar, tar.gz, tar.bz2.
+- **Option to delete original files** after successful compression.
+- **Customizable file type** for compression (default is all files).
+- **Help information** provided to guide users on script usage.
 
 ## get_ip
 This script retrieves the current public IP address of your machine. It's handy for troubleshooting or sharing network information.
 
 ## net_speed_test
-This script performs a speed test of your internet connection, providing real-time upload and download speeds.
+This script installs `speedtest-cli` if it is not already installed, runs a network speed test, and logs the results for later review. It provides an easy way to monitor network performance over time.
+### Features
+- **Automatic installation**: Installs `speedtest-cli` if it is not present on the system.
+- **Logging**: Saves the results of the network speed test to a log file for future reference.
+- **Simple usage**: Run the script with minimal command-line options.
 
 ## org_files_by_date
-This script organizes files in the current directory into subdirectories based on their creation or modification date.
+This script organizes files in the current directory and its subdirectories into folders based on their creation date (or modification date if the creation date is not available). Files are either moved or copied into directories named by year and month.
+
+### Features
+- **Organizes files**: Automatically sorts files into year/month folders based on their dates.
+- **Flexible options**: Choose to copy files instead of moving them.
+- **User-friendly**: Simple command-line interface with help options.
 
 ## sysup
 This script performs a comprehensive system update on Fedora, including DNF package updates, security updates, cleanup of old packages, updating Flatpak packages, and cleaning up cached package data.
@@ -84,15 +98,19 @@ This script performs a comprehensive system update on Fedora, including DNF pack
 > [!WARNING] Only works with Linux Fedora.
 
 ## xtract
-This script extracts files of the specified type from the current directory. It can also extract files into their own directories named after the file if the `-d` option is used.
+This script extracts files of the specified type from the current directory. Users can choose to extract files into their own directories named after the file or extract them directly into the current directory.
 
-### Options:
-- `-h, --help`: Display help message.
-- `-d`: Extract files into their own directories named after the file.
-- `<file_type>`: The type of files to extract (e.g., `.zip`, `.tar`, `.gz`).
+### Features
+- **Flexible extraction**: Choose to extract files into individual directories or into the current directory.
+- **Supports multiple formats**: Handles various compressed file formats like `.zip`, `.tar`, `.gz`, and more.
 
 ## yt2mp3
-This script downloads audio from YouTube URLs provided in a file or a single URL. Downloaded audio files will be saved in the specified output directory or the current directory if not provided.
+This script downloads audio from YouTube URLs provided in a file or a single URL. The downloaded audio files will be saved in a specified output directory or the current directory if not provided.
+
+### Features
+- **Download from a file or URL**: Supports downloading audio from a list of URLs in a text file or a single YouTube URL.
+- **Customizable output directory**: Specify where the audio files should be saved.
+- **Audio format support**: Downloads audio in MP3 format with thumbnail embedding.
 
 ### Requirements
 Ensure `yt-dlp` is installed on your system to use this script. You can install it using your package manager or by following the installation instructions on the [yt-dlp GitHub page](https://github.com/yt-dlp/yt-dlp).
