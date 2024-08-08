@@ -1,4 +1,4 @@
-# Bash Scripts for Linux
+# Setup Instructions
 These scripts are designed for Linux to accomplish various tasks quickly. Many scripts can be used by any Linux distribution by some scripts like `sysup` are for Fedora specifically as that's my flavor of choice.
 
 ## Cloning the Repository
@@ -10,17 +10,17 @@ After cloning the repository, you need to set executable permissions for the scr
 
 1. Navigate to the cloned directory: `cd bash-scripts`
 2. Run the following command to make each script file executable: `chmod +x *`
-3. *(Optional)* To save the permissions to your folder, run this command (replace path/to with your file path): `chmod -R +x /path/to/bash-scripts`
+3. *(Optional)* To save the permissions to your folder, run this command from the folder: `chmod -R +x /bash-scripts/scripts`
 > [!TIP]
-> This command ensures that you have the necessary permissions to execute the scripts.
+> This command ensures that you have the necessary permissions to execute the scripts. Adjust the file path to point to where you placed the `/bash-scripts/scripts` folder.
 
 # Bash Scripts
 Each script comes with a -h or --help option to see how they work and how to use them.
 > [!NOTE]
-> `bash_utilities` is an exception. This script houses general functions for the other scripts.
+> `bash_utilities` is the only exception. This script houses general functions for the other scripts to make maintenance easier for me.
 
 ## bash_utilities
-This script provides various utility functions to enhance the functionality of other scripts. It includes functions for color formatting and header printing.
+This script provides various utility functions to enhance the functionality of other scripts. It includes functions for terminal color and text formatting as well as other terminal output functions.
 
 ## 2pdf
 This script converts various document formats to PDF using LibreOffice. It's useful for preparing documents for sharing or printing. Supported formats include `.doc`, `.docx`, `.odt`, `.rtf`, `.txt`, and `.html`.
@@ -30,7 +30,13 @@ Make sure LibreOffice is installed on your system to use this script. You can in
 > The script will place the converted PDF output in the same directory as the original file.
 
 ## add2emu
-This script moves all files from the current directory to a specified emulator folder for BATOCERA. The emulator folder is determined by the emulator name, and the type specifies the base folder (either 'rom' or 'music'). 
+This script moves all files from the current directory to a specified emulator folder. This script is intended for usage with Batocera and uses their folder structure but can be used with any emulator as long as you have the same folder/file organization. 
+
+You will need a folder setup as follows: 
+- Group all of your emulators in a single directory like: `emulators/ps2` and `emulators/gc` etc:
+- Each folder should have a `roms` folder inside of it like `emulators/ps2/roms` etc: 
+
+With the setup above, make sure the `base_path` variable inside of the script matches the location of your `emulators` folder directory.
 
 ### Requirements
 - **Dependencies**:
@@ -47,7 +53,12 @@ This script moves all files from the current directory to a specified emulator f
 > The script assumes the directory is in `run/media/$username/SHARE`. This should be modified to match your directory for BATOCERA.
 
 ## clean_empty_dirs
-This script removes empty directories from the current path, helping to declutter your filesystem.
+This script is designed to find and delete empty directories within a specified directory. If no directory is provided, it will default to the current directory.
+
+### Features
+- **Recursively searches** for empty directories within the specified path.
+- **User confirmation** before deleting any empty directories to prevent accidental data loss.
+- **Help information** provided to guide users on how to use the script.
 
 ## compress_files
 This script compresses specified files or directories into a .zip format, useful for storage and transfer.
