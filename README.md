@@ -11,11 +11,13 @@ After cloning the repository, you need to set executable permissions for the scr
 1. Navigate to the cloned directory: `cd bash-scripts`
 2. Run the following command to make each script file executable: `chmod +x *`
 3. *(Optional)* To save the permissions to your folder, run this command (replace path/to with your file path): `chmod -R +x /path/to/bash-scripts`
-> [!TIP] This command ensures that you have the necessary permissions to execute the scripts.
+> [!TIP]
+> This command ensures that you have the necessary permissions to execute the scripts.
 
 ## Bash Scripts
 Each script comes with a -h or --help option to see how they work and how to use them.
-> [!NOTE] `bash_utilities` is an exception. This script houses general functions for the other scripts.
+> [!NOTE]
+> `bash_utilities` is an exception. This script houses general functions for the other scripts.
 
 ### bash_utilities
 This script provides various utility functions to enhance the functionality of other scripts. It includes functions for color formatting and header printing.
@@ -24,8 +26,8 @@ This script provides various utility functions to enhance the functionality of o
 This script converts various document formats to PDF using LibreOffice. It's useful for preparing documents for sharing or printing. Supported formats include `.doc`, `.docx`, `.odt`, `.rtf`, `.txt`, and `.html`.
 #### Requirements
 Make sure LibreOffice is installed on your system to use this script. You can install it using your package manager. If LibreOffice is not installed, the script will display an error message.
-
-> [!NOTE] The script will place the converted PDF output in the same directory as the original file.
+> [!NOTE]
+> The script will place the converted PDF output in the same directory as the original file.
 
 ### add2emu
 This script moves all files from the current directory to a specified emulator folder for BATOCERA. The emulator folder is determined by the emulator name, and the type specifies the base folder (either 'rom' or 'music'). 
@@ -41,8 +43,8 @@ This script moves all files from the current directory to a specified emulator f
 - **`[type]`**: The base folder type. Can be:
   - **`rom`** (default): Moves ROM files to the emulator folder.
   - **`music`**: Moves music files to the emulator folder.
-
-> [!NOTE] The script assumes the directory is in `run/media/$username/SHARE`. This should be modified to match your directory for BATOCERA.
+> [!NOTE]
+> The script assumes the directory is in `run/media/$username/SHARE`. This should be modified to match your directory for BATOCERA.
 
 ### clean_empty_dirs
 This script removes empty directories from the current path, helping to declutter your filesystem.
