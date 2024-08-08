@@ -28,21 +28,19 @@ fi
 
 # Parse options
 output_directory="."
-while getopts "o:" opt; do
-  case $opt in
-    o)
-      output_directory="$OPTARG"
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -o|--output)
+      output_directory="$2"
+      shift 2 # Move past the option and the argument
       ;;
     *)
-      show_help
+      break # Exit the loop if the option is not recognized
       ;;
   esac
 done
 
-# Shift the arguments so we can check for file or URL
-shift $((OPTIND - 1))
-
-# Check if the argument is a file
+# Check if the next argument is a file or URL
 if [ -f "$1" ]; then
   # Read URLs from the file and download each
   while IFS= read -r url; do
