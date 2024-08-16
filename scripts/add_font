@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Source the formatting functions (if applicable)
+source "$(dirname "$0")/bash_utilities"
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename $0) <url>"
+  echo "This script downloads and installs a font from a specified URL."
+  print_header "Options:"
+  echo "  $(color_bold_blue 'url')        The URL of the font zip file to download."
+  print_header "Examples:"
+  echo "  $(color_blue "$(basename "$0") https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip")"
+  exit 0
+}
+
+# Check if help is requested or if URL is not provided
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  show_help
+fi
+
+if [ -z "$1" ]; then
+  color_red "Error: No URL provided."
+  show_help
+fi
+
+# Title indication
+print_title "STARTING FONT INSTALLATION SCRIPT"
+
+# Get the URL from the first argument
+url=$1
+
+# Detect the filename from the URL
+filename=$(basename "$url")
+
+# Download the file to the fonts directory
+wget -P ~/.local/share/fonts "$url"
+
+# Navigate to the fonts directory
+cd ~/.local/share/fonts || { color_red "Error: Failed to navigate to the fonts directory."; exit 1; }
+
+# Unzip the downloaded file
+unzip "$filename"
+
+# Remove the zip file
+rm "$filename"
+
+# Refresh the font cache
+fc-cache -fv
+
+# Title indication
+print_title "FONT INSTALLATION SCRIPT COMPLETED"
