@@ -29,6 +29,15 @@ Make sure LibreOffice is installed on your system to use this script. You can in
 > [!NOTE]
 > The script will place the converted PDF output in the same directory as the original file.
 
+## add_font
+This script downloads and installs a font from a specified URL, typically in a `.zip` format. It’s useful for quickly adding new fonts to your system without manually handling the installation process. The script automatically extracts the font files and updates the font cache so that the newly installed fonts are available for use immediately.
+
+### Requirements
+Ensure that `wget`, `unzip`, and `fc-cache` are installed on your system to use this script. These utilities are typically available on most Linux distributions by default or can be installed via your package manager. If any of these tools are missing, the script will fail to complete the installation process.
+
+> [!NOTE]
+> The script will place the downloaded and extracted font files in the `~/.local/share/fonts` directory and remove the downloaded `.zip` file after extraction.
+
 ## add2emu
 This script moves all files from the current directory to a specified emulator folder. This script is intended for usage with Batocera and uses their folder structure but can be used with any emulator as long as you have the same folder/file organization. 
 
