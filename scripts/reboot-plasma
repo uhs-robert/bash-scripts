@@ -1,2 +1,15 @@
 #!/bin/bash
-kquitapp5 plasmashell && kstart5 plasmashell
+
+# Check if plasmashell is running
+if pgrep -x "plasmashell" > /dev/null
+then
+    echo "plasmashell is running. Stopping it..."
+    kquitapp5 plasmashell
+    sleep 2  # Wait for a few seconds to ensure plasmashell is stopped
+else
+    echo "plasmashell is not running."
+fi
+
+# Start plasmashell
+echo "Starting plasmashell..."
+kstart5 plasmashell
