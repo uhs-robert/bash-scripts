@@ -80,6 +80,15 @@ This script compresses files in a specified directory (or the current directory 
 ## get_ip
 This script retrieves the current public IP address of your machine. It's handy for troubleshooting or sharing network information.
 
+## make-exe
+This script makes all files in a specified directory executable. By default, it uses the ./scripts directory to grant executable permissions to all scripts.
+
+### Features
+- **Customizable Directory**: Optionally specify a different directory using the `-d <directory>` option; defaults to `./scripts`.
+- **Executable Permissions**: Grants executable permissions to each file in the specified directory.
+- **Error Handling**: Provides feedback if the specified directory does not exist.
+Help Information: Includes a `-h` or `--help` option to display usage instructions.
+
 ## net_speed_test
 This script installs `speedtest-cli` if it is not already installed, runs a network speed test, and logs the results for later review. It provides an easy way to monitor network performance over time.
 ### Features
