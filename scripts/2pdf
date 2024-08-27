@@ -4,12 +4,6 @@
 source "$(dirname "$0")/bash_utilities"
 
 # Function to display help information
-#!/bin/bash
-
-# Source the formatting functions
-source "$(dirname "$0")/bash_utilities"
-
-# Function to display help information
 show_help() {
   print_title "HELP INFORMATION"
   print_header "Usage: $(basename "$0") [OPTIONS] [DIRECTORY|FILE]"
