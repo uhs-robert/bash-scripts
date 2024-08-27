@@ -3,11 +3,11 @@
 # Check if plasmashell is running
 if pgrep -x "plasmashell" > /dev/null
 then
-    echo "plasmashell is running. Stopping it..."
+    echo "Stopping plasmashell..."
     kquitapp5 plasmashell
     sleep 2  # Wait for a few seconds to ensure plasmashell is stopped
 else
-    echo "plasmashell is not running."
+    echo "plasmashell is not running..."
 fi
 
 # Start plasmashell
