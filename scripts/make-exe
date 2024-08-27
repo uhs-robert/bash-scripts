@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Source the formatting functions
+source "$(dirname "$0")/bash_utilities"
+
+# Title: Make Files Executable
+# Description: This script loops through all files in a specified directory (or default to './scripts') and gives them executable permissions.
+
+# Function to display help information
+show_help() {
+  print_title "HELP INFORMATION"
+  print_header "Usage: $(basename $0) [OPTIONS] [DIRECTORY]"
+  echo "This script grants executable permissions to each file in the specified directory (or './scripts' if not provided)."
+  print_header "Options:"
+  echo "  $(color_bold_blue '-d <directory>')      Specify the directory to process (default is './scripts')."
+  echo "  $(color_bold_blue '-h, --help')           Display this help message."
+  exit 0
+}
+
+# Parse options
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    -d) 
+      shift
+      SCRIPTS_DIR="$1"
+      ;;
+    -h|--help) 
+      show_help
+      ;;
+    *) 
+      echo -e "$(color_red "Error: Invalid option: $1")"
+      show_help
+      ;;
+  esac
+  shift
+done
+
+# Default to './scripts' if no directory is provided
+SCRIPTS_DIR="${SCRIPTS_DIR:-./scripts}"
+
+# Check if the directory exists
+if [ ! -d "$SCRIPTS_DIR" ]; then
+  echo -e "$(color_red "Error: The directory '$SCRIPTS_DIR' does not exist.")"
+  exit 1
+fi
+
+# Loop through each file in the directory
+for file in "$SCRIPTS_DIR"/*; do
+  if [ -f "$file" ]; then
+    chmod +x "$file"
+    echo "$(color_green "Made '$file' executable.")"
+  else
+    echo "$(color_orange "Skipping '$file', not a regular file.")"
+  fi
+done
+
+echo "$(color_cyan "All files in '$SCRIPTS_DIR' have been processed.")"
