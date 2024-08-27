@@ -95,6 +95,9 @@ This script organizes files in the current directory and its subdirectories into
 - **Flexible options**: Choose to copy files instead of moving them.
 - **User-friendly**: Simple command-line interface with help options.
 
+## reboot-plasma
+This script reboots KDE Plasma. This is useful when KDE Plasma starts glitching especially with multiple monitors. Rebooting plasma will fix issues like a monitor not being detected after sleep or lock screen when it was previously detected.
+
 ## sysup
 This script performs a comprehensive system update on Fedora, including DNF package updates, security updates, cleanup of old packages, updating Flatpak packages, and cleaning up cached package data.
 ### Options
