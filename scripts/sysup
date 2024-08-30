@@ -149,7 +149,7 @@ color_blue "1. Reboot"
 color_blue "2. Power-off"
 color_blue "3. Exit (Done)"
 
-read -t 12 -p "Enter your choice [1-3] (default is 3): " choice
+read -p "Enter your choice [1-3] (default is 3): " choice
 
 # Default to 3 if no choice is entered within the timeout
 choice=${choice:-3}
