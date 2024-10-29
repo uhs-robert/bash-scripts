@@ -114,7 +114,8 @@ This script performs a comprehensive system update on Fedora, including DNF pack
 - `-s, --skip-security`: Skip security updates.
 - `-f, --skip-flatpak`: Skip Flatpak updates.
 - `-c, --skip-clean-cache`: Skip cleaning the DNF cache.
-- `-n, --no-confirm`: Run DNF commands without the `-y` flag to require user confirmation.
+- `-n, --no-confirm`: Run DNF commands without the `-y` flag to require user confirmat
+
 
 > [!WARNING] Only works with Linux Fedora.
 

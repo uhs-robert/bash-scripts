@@ -25,6 +25,18 @@ show_help() {
   exit 0
 }
 
+# Function to update initramfs if NVIDIA packages are updated
+check_for_nvidia_updates_and_regenerate_initramfs() {
+    echo "Checking if NVIDIA packages were updated..."
+    if echo "$update_output" | grep -q -i 'nvidia'; then
+        echo "NVIDIA package updates detected. Regenerating initramfs..."
+        sudo dracut -f --regenerate-all
+        echo "Initramfs regeneration complete!"
+    else
+        echo "No NVIDIA updates detected. Skipping initramfs regeneration."
+    fi
+}
+
 # Default values for options
 skip_security=false
 skip_flatpak=false
@@ -87,7 +99,8 @@ fi
 
 # Update all packages
 print_header "Updating DNF Packages"
-sudo dnf update $dnf_flags
+update_output=$(sudo dnf update $dnf_flags | tee /dev/tty)  # This also displays the output to the terminal
+check_for_nvidia_updates_and_regenerate_initramfs
 
 # Handling RPM configuration files
 print_header "Handling Leftover RPM Configuration Files"
