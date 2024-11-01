@@ -3,6 +3,12 @@
 # Source the utilities file
 source "$(dirname "$0")/bash_utilities"
 
+# Logging setup: capture all output to both terminal and log file
+LOG_DIR="$HOME/logs"
+mkdir -p "$LOG_DIR"  # Create the directory if it doesn't exist
+LOGFILE="$LOG_DIR/system_update_$(date +%F_%H-%M-%S).log"  # Log file with timestamp
+exec > >(tee -a "$LOGFILE") 2>&1
+
 # Function to display help information
 show_help() {
   print_title "HELP INFORMATION"
@@ -23,18 +29,6 @@ show_help() {
   echo -e "  $(color_blue "$(basename "$0") -n")                   Perform system updates with user confirmation for each DNF operation."
   echo -e "  $(color_blue "$(basename "$0") -s -f -c")             Combine multiple options to skip security updates, Flatpak updates, and DNF cache cleaning."
   exit 0
-}
-
-# Function to update initramfs if NVIDIA packages are updated
-check_for_nvidia_updates_and_regenerate_initramfs() {
-    echo "Checking if NVIDIA packages were updated..."
-    if echo "$update_output" | grep -q -i 'nvidia'; then
-        echo "NVIDIA package updates detected. Regenerating initramfs..."
-        sudo dracut -f --regenerate-all
-        echo "Initramfs regeneration complete!"
-    else
-        echo "No NVIDIA updates detected. Skipping initramfs regeneration."
-    fi
 }
 
 # Default values for options
@@ -90,6 +84,7 @@ fi
 
 # Starting system updates message
 print_title "STARTING SYSTEM UPDATES"
+command -v notify-send &>/dev/null && notify-send "System Update" "Starting system update..."
 
 # Refreshing the DNF cache only if not skipping clean cache
 if [ "$skip_clean_cache" = false ]; then
@@ -99,8 +94,22 @@ fi
 
 # Update all packages
 print_header "Updating DNF Packages"
-update_output=$(sudo dnf update $dnf_flags | tee /dev/tty)  # This also displays the output to the terminal
-check_for_nvidia_updates_and_regenerate_initramfs
+temp_file=$(mktemp) # Create a temporary file
+script -q -c "sudo dnf update $dnf_flags" "$temp_file" # Redirect output to a temp file
+update_output=$(sed '1d;$d' "$temp_file") # Remove first and last line
+updated_count=$(echo "$update_output" | grep -cE 'Upgraded|Installed|Updated|Reinstalled')
+rm "$temp_file" # Remove the temporary file
+
+# Handle NVIDIA packages
+echo
+echo "Checking if NVIDIA packages were updated..."
+if echo "$update_output" | grep -q -i 'nvidia'; then
+    echo "NVIDIA package updates detected. Regenerating initramfs..."
+    sudo dracut -f --regenerate-all
+    echo "Initramfs regeneration complete!"
+else
+    echo "Nothing to do."
+fi
 
 # Handling RPM configuration files
 print_header "Handling Leftover RPM Configuration Files"
@@ -157,7 +166,19 @@ fi
 
 echo
 print_title "SYSTEM UPDATES COMPLETED"
+
+# Display notification if updates were found and remove log file if none
+if (( updated_count > 0 )); then
+  command -v notify-send &>/dev/null && notify-send "System Update" "$updated_count packages were updated successfully!"
+else
+  command -v notify-send &>/dev/null && notify-send "System Update" "No updates found."
+  rm "$LOGFILE"
+fi
+
 echo "What would you like to do next?"
+if [ -f /var/run/reboot-required ]; then
+  color_yellow "A system reboot is required to apply all updates. Consider rebooting."
+fi
 color_blue "1. Reboot"
 color_blue "2. Power-off"
 color_blue "3. Exit (Done)"
