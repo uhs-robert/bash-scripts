@@ -6,36 +6,39 @@ source "$(dirname "$0")/bash_utilities"
 # Function to display help information
 show_help() {
   print_title "HELP INFORMATION"
-  print_header "Usage: $(basename $0) [OPTIONS]"
-  echo "This script organizes files in the current directory and its subdirectories"
+  print_header "Usage: $(basename $0) [OPTIONS] [DIRECTORY]"
+  echo "This script organizes files in the specified directory and its subdirectories"
   echo "into folders based on their creation date (or modification date if creation"
   echo "date is not available). The files will be moved (default) or copied into"
   echo "directories named by year and month."
   print_header "Options:"
   echo "  $(color_bold_blue '-c')         Copy files instead of moving them."
+  echo "  $(color_bold_blue '-d DAYS')    Delete files older than the specified number of days."
   echo "  $(color_bold_blue '-h, --help') Display this help message."
   print_header "Examples:"
-  echo "  $(color_blue "$(basename "$0") -c /path/to/directory")  Copy files to respective folders."
-  echo "  $(color_blue "$(basename "$0") /path/to/directory")     Move files to respective folders."
+  echo "  $(color_blue "$(basename "$0") -c -d 90 /path/to/directory")  Copy files and delete files older than 90 days."
+  echo "  $(color_blue "$(basename "$0") /path/to/directory")           Move files to respective folders."
   exit 0
 }
 
 
 # Function to get the creation date of a file
 get_creation_date() {
-  # Using stat to get the creation date (birth time) of a file
-  # The format %Y-%m-%d will give us the year, month, and day
   stat -c %w "$1" 2>/dev/null | cut -d ' ' -f1
 }
 
 # Initialize the copy_files variable
 copy_files=false
+delete_days=""
 
 # Parse command line options
-while getopts ":ch-:" opt; do
+while getopts ":cd:h-:" opt; do
   case ${opt} in
     c )
       copy_files=true
+      ;;
+    d )
+      delete_days="$OPTARG"
       ;;
     h )
       show_help
@@ -57,16 +60,17 @@ while getopts ":ch-:" opt; do
       ;;
   esac
 done
-
 shift $((OPTIND -1))
+
+# Set the target directory
+DIRECTORY="${1:-.}"
 
 # Begin operation
 print_title "BEGIN FILE ORGANIZATION"
-print_header "Organizing files by creation/modification date into Year/Month folders..."
+print_header "Organizing files in $DIRECTORY by creation/modification date into Year/Month folders..."
 
 # Loop through all files in the current directory and its subdirectories
-find . -type f | while read -r file; do
-  # Get the creation date of the file
+find "$DIRECTORY" -type f | while read -r file; do
   creation_date=$(get_creation_date "$file")
 
   # If the creation date is empty (e.g., for filesystems that do not support birth time), use the modification date
@@ -79,20 +83,25 @@ find . -type f | while read -r file; do
   month=$(echo "$creation_date" | cut -d '-' -f2)
 
   # Create the target directory if it does not exist
-  target_dir="./$year/$month"
+  target_dir="$DIRECTORY/$year/$month"
   mkdir -p "$target_dir"
 
+  # Move or copy the file to the target directory
   if [ "$copy_files" == true ]; then
-    # Copy the file to the target directory
     cp "$file" "$target_dir"
     echo "Copied: $file to $target_dir"
   else
-    # Move the file to the target directory
     mv "$file" "$target_dir"
     echo "Moved: $file to $target_dir"
   fi
 done
-color_green "Complete!"
+
+# Delete files older than the specified number of days if provided
+if [[ -n "$delete_days" ]]; then
+  print_header "Deleting files older than $delete_days days in $DIRECTORY"
+  find "$DIRECTORY" -type f -mtime +$delete_days -exec rm -f {} \;
+fi
 
 # End operation
+color_green "Complete!"
 print_title "FILE ORGANIZATION COMPLETE"

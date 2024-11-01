@@ -35,7 +35,7 @@ show_help() {
 skip_security=false
 skip_flatpak=false
 skip_clean_cache=false
-confirm=true
+auto_confirm=true
 
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -50,7 +50,7 @@ while [[ "$#" -gt 0 ]]; do
       skip_clean_cache=true
       ;;
     -n|--no-confirm)
-      confirm=false
+      auto_confirm=false
       ;;
     -h|--help)
       show_help
@@ -65,9 +65,7 @@ done
 
 # Set DNF flags
 dnf_flags=""
-if [ "$confirm" = true ]; then
-  dnf_flags="-y"
-fi
+[ "$auto_confirm" = true ] && dnf_flags="-y"
 
 # Check for and install necessary dependencies
 missing_packages=()
@@ -84,16 +82,20 @@ fi
 
 # Starting system updates message
 print_title "STARTING SYSTEM UPDATES"
-command -v notify-send &>/dev/null && notify-send "System Update" "Starting system update..."
+icon="mintupdate-checking"
+progress_id=$(dunstify -a "System Update" -p -t 0 "System Update" "Starting system update...")
 
 # Refreshing the DNF cache only if not skipping clean cache
 if [ "$skip_clean_cache" = false ]; then
   print_header "Refreshing DNF Cache"
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Refreshing DNF cache..."
   sudo dnf makecache --refresh $dnf_flags
 fi
 
 # Update all packages
 print_header "Updating DNF Packages"
+icon="mintupdate-installing"
+dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Updating DNF Packages..."
 temp_file=$(mktemp) # Create a temporary file
 script -q -c "sudo dnf update $dnf_flags" "$temp_file" # Redirect output to a temp file
 update_output=$(sed '1d;$d' "$temp_file") # Remove first and last line
@@ -105,6 +107,7 @@ echo
 echo "Checking if NVIDIA packages were updated..."
 if echo "$update_output" | grep -q -i 'nvidia'; then
     echo "NVIDIA package updates detected. Regenerating initramfs..."
+    dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "NVIDIA update detected. Regenerating initramfs..."
     sudo dracut -f --regenerate-all
     echo "Initramfs regeneration complete!"
 else
@@ -113,6 +116,7 @@ fi
 
 # Handling RPM configuration files
 print_header "Handling Leftover RPM Configuration Files"
+dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Handling RPM configuration files..."
 echo "Looking for leftover configuration files…"
 rpmFiles=$(sudo rpmconf -a | tee /dev/tty)
 # Check if there was any output
@@ -126,13 +130,14 @@ fi
 # Checking for and installing security updates
 if [ "$skip_security" = false ]; then
   print_header "Security Updates"
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Checking for security updates..."
   echo "Looking for security updates…"
   # Store the output of the security check
   securityUpdates=$(sudo dnf check-update --security)
   if echo "$securityUpdates" | grep -q "Security"; then
     echo "Installing Security Updates"
-    # Install the security updates
     sudo dnf update --security $dnf_flags
+    dunstify -a "System Update" -r "$progress_id" -t 0 "System Update" "Installed security updates."
   else
     echo "Nothing to do."
   fi
@@ -140,6 +145,7 @@ fi
 
 # Cleaning up old packages
 print_header "Cleaning Up Old Packages"
+dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Cleaning up old packages..."
 echo "Looking for old packages…"
 autoRemove=$(sudo dnf autoremove $dnf_flags)
 if echo "$autoRemove" | grep -q "Nothing to do"; then
@@ -151,9 +157,11 @@ fi
 # Updating Flatpak packages and removing unused ones
 if [ "$skip_flatpak" = false ]; then
   print_header "Updating Flatpak Packages"
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Updating Flatpak packages..."
   flatpak update $dnf_flags
 
   print_header "Removing Unused Flatpak Packages"
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Removing unused Flatpak packages..."
   echo "Looking for unused Flatpak packages…"
   flatpak uninstall --unused $dnf_flags
 fi
@@ -161,6 +169,7 @@ fi
 # Cleaning up all cached package data
 if [ "$skip_clean_cache" = false ]; then
   print_header "Cleaning Up Cached Package Data"
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Cleaning cached package data..."
   sudo dnf clean all
 fi
 
@@ -169,40 +178,77 @@ print_title "SYSTEM UPDATES COMPLETED"
 
 # Display notification if updates were found and remove log file if none
 if (( updated_count > 0 )); then
+  result="$updated_count packages were updated successfully!"
+  org_files_by_date -d 90 "$LOG_DIR" > /dev/null 2>&1 # Organize log files by date and remove older than 90 days
   echo "View the log directory: file://$LOG_DIR"
-  command -v notify-send &>/dev/null && notify-send "System Update" "$updated_count packages were updated successfully!"
 else
-  command -v notify-send &>/dev/null && notify-send "System Update" "No updates found."
+  result="No updates found."
   rm "$LOGFILE"
 fi
 
-echo "What would you like to do next?"
+# Check if a reboot is required and set the reboot message
+reboot_message=""
+icon="mintupdate-up-to-date"
 if [ -f /var/run/reboot-required ]; then
-  color_yellow "A system reboot is required to apply all updates. Consider rebooting."
+  reboot_message="\nA system reboot is required to apply all updates."
+  icon="system-reboot"
 fi
-color_blue "1. Reboot"
-color_blue "2. Power-off"
-color_blue "3. Exit (Done)"
 
-read -p "Enter your choice [1-3] (default is 3): " choice
+# Display notification and prompt user for next steps
+dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon \
+  -A open,"📂 Open Log" \
+  -A reboot,"🔄 Reboot" \
+  -A shutdown,"💡 Power-off" \
+  "Update Complete" "$result$reboot_message"
 
-# Default to 3 if no choice is entered within the timeout
-choice=${choice:-3}
+# Function to handle actions based on terminal input
+handle_terminal_choice() {
+  echo "What would you like to do next?"
+  color_orange $reboot_message
+  color_blue "1. Reboot"
+  color_blue "2. Power-off"
+  color_blue "3. Exit (Done)"
 
-case $choice in
-  1)
-    color_blue "Rebooting system"
-    sudo reboot
-    ;;
-  2)
-    color_blue "Powering off system"
-    sudo poweroff
-    ;;
-  3)
-    color_blue "Exiting script."
-    exit
-    ;;
-  *)
-    color_red "Invalid choice. Please choose 1, 2, or 3."
-    ;;
-esac
+  read -p "Enter your choice [1-3] (default is 3): " choice
+  choice=${choice:-3}  # Default to 3 if no choice is entered
+
+  # Take action based on terminal choice
+  case $choice in
+    1)
+      color_blue "Rebooting system"
+      sudo reboot
+      ;;
+    2)
+      color_blue "Powering off system"
+      sudo poweroff
+      ;;
+    3)
+      color_blue "Exiting script."
+      exit
+      ;;
+    *)
+      color_red "Invalid choice. Please choose 1, 2, or 3."
+      ;;
+  esac
+}
+
+# Function to handle actions based on dunstify response
+handle_dunstify_choice() {
+  while true; do
+    dunst_action=$(dunstctl action "$progress_id" 2>/dev/null)
+    case "$dunst_action" in
+      open) xdg-open "$LOG_DIR" ;;
+      reboot) sudo reboot ;;
+      shutdown) sudo poweroff ;;
+      *) return ;;
+    esac
+  done
+}
+
+# Start listening to both terminal and notification inputs
+handle_terminal_choice &
+handle_dunstify_choice &
+
+# Wait for any background process to finish, then kill the other
+wait -n
+pkill -P $$
