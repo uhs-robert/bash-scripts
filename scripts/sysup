@@ -169,6 +169,7 @@ print_title "SYSTEM UPDATES COMPLETED"
 
 # Display notification if updates were found and remove log file if none
 if (( updated_count > 0 )); then
+  echo "View the log directory: file://$LOG_DIR"
   command -v notify-send &>/dev/null && notify-send "System Update" "$updated_count packages were updated successfully!"
 else
   command -v notify-send &>/dev/null && notify-send "System Update" "No updates found."
