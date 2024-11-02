@@ -177,42 +177,54 @@ echo
 print_title "SYSTEM UPDATES COMPLETED"
 
 # Display notification if updates were found and remove log file if none
+keep_log=true
 if (( updated_count > 0 )); then
   result="$updated_count packages were updated successfully!"
   org_files_by_date -d 90 "$LOG_DIR" > /dev/null 2>&1 # Organize log files by date and remove older than 90 days
-  echo "View the log directory: file://$LOG_DIR"
 else
   result="No updates found."
+  keep_log=false
   rm "$LOGFILE"
 fi
 
 # Check if a reboot is required and set the reboot message
 reboot_message=""
+needs_reboot=false
 icon="mintupdate-up-to-date"
 if [ -f /var/run/reboot-required ]; then
   reboot_message="\nA system reboot is required to apply all updates."
   icon="system-reboot"
+  needs_reboot=true
 fi
-
-# Display notification and prompt user for next steps
-dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon \
-  -A open,"📂 Open Log" \
-  -A reboot,"🔄 Reboot" \
-  -A shutdown,"💡 Power-off" \
-  "Update Complete" "$result$reboot_message"
 
 # Function to handle actions based on terminal input
 handle_terminal_choice() {
+  # Show log file
+  if [ "$keep_log" = true ]; then
+    print_header "Log File Saved"
+    echo "Open Log directory: file://$LOG_DIR"
+    echo "View Log file: file://$LOGFILE"
+    echo
+  fi
+
+  # Show reboot message
+  if [ "$needs_reboot" = true ]; then
+    print_header "System Reboot Required"
+    echo "$reboot_message"
+    echo
+  fi
+
+  # Show choices
   echo "What would you like to do next?"
-  color_orange $reboot_message
+  color_orange "$reboot_message"
   color_blue "1. Reboot"
   color_blue "2. Power-off"
   color_blue "3. Exit (Done)"
 
+  exec < /dev/tty
   read -p "Enter your choice [1-3] (default is 3): " choice
-  choice=${choice:-3}  # Default to 3 if no choice is entered
+  choice=${choice:-3}
 
-  # Take action based on terminal choice
   case $choice in
     1)
       color_blue "Rebooting system"
@@ -224,30 +236,50 @@ handle_terminal_choice() {
       ;;
     3)
       color_blue "Exiting script."
-      exit
       ;;
     *)
       color_red "Invalid choice. Please choose 1, 2, or 3."
       ;;
   esac
+
+  # Exit the script
+  exit 0
 }
 
-# Function to handle actions based on dunstify response
+# Function to handle notification actions
 handle_dunstify_choice() {
-  while true; do
-    dunst_action=$(dunstctl action "$progress_id" 2>/dev/null)
-    case "$dunst_action" in
-      open) xdg-open "$LOG_DIR" ;;
-      reboot) sudo reboot ;;
-      shutdown) sudo poweroff ;;
-      *) return ;;
-    esac
-  done
+  # Display notification with actions and capture the output (blocking until an action is selected)
+  progress_id=$(dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon \
+    --action="open,📂 View Logs" \
+    --action="reboot,🔄 Reboot" \
+    --action="shutdown,💡 Power-off" \
+    "Update Complete" "$result$reboot_message" | tail -n1)
+
+  # Process the action based on `dunstify` output
+  case "$progress_id" in
+    "open")
+      xdg-open "$LOG_DIR"
+      ;;
+    "reboot")
+      echo "Rebooting system..."
+      sudo reboot
+      ;;
+    "shutdown")
+      color_blue "Powering off system"
+      sudo poweroff
+      ;;
+    *)
+      color_blue "Exiting script."
+      ;;
+  esac
+
+  # Exit the script
+  exit 0
 }
 
 # Start listening to both terminal and notification inputs
+handle_dunstify_choice & 
 handle_terminal_choice &
-handle_dunstify_choice &
 
 # Wait for any background process to finish, then kill the other
 wait -n
