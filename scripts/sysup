@@ -108,7 +108,8 @@ echo "Checking if NVIDIA packages were updated..."
 if echo "$update_output" | grep -q -i 'nvidia'; then
     echo "NVIDIA package updates detected. Regenerating initramfs..."
     dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "NVIDIA update detected. Regenerating initramfs..."
-    sudo dracut -f --regenerate-all
+    sudo akmods --force
+    sudo dracut --force
     echo "Initramfs regeneration complete!"
 else
     echo "Nothing to do."
