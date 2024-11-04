@@ -92,27 +92,23 @@ if [ "$skip_clean_cache" = false ]; then
   sudo dnf makecache --refresh $dnf_flags
 fi
 
-# Update all packages
-print_header "Updating DNF Packages"
+# Handle DNF Updates
+print_header "Checking DNF Pending Updates"
+dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Checking for DNF updates..."
+dnf_pending=$(dnf check-update | grep -c '^[a-zA-Z]') # Count pending packages, filtering valid lines
 icon="mintupdate-installing"
-dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Updating DNF Packages..."
-temp_file=$(mktemp) # Create a temporary file
-script -q -c "sudo dnf update $dnf_flags" "$temp_file" # Redirect output to a temp file
-update_output=$(sed '1d;$d' "$temp_file") # Remove first and last line
-updated_count=$(echo "$update_output" | grep -cE 'Upgraded|Installed|Updated|Reinstalled')
-rm "$temp_file" # Remove the temporary file
-
-# Handle NVIDIA packages
-echo
-echo "Checking if NVIDIA packages were updated..."
-if echo "$update_output" | grep -q -i 'nvidia'; then
-    echo "NVIDIA package updates detected. Regenerating initramfs..."
-    dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "NVIDIA update detected. Regenerating initramfs..."
-    sudo akmods --force
-    sudo dracut --force
-    echo "Initramfs regeneration complete!"
+if (( dnf_pending > 0 )); then
+  print_header "Updating DNF Packages"
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Updating $dnf_pending DNF Packages..."
+  temp_file=$(mktemp) # Create a temporary file to capture output  
+  script -q -c "sudo dnf update $dnf_flags" "$temp_file" # Redirect output to a temp file
+  dnf_output=$(sed '1d;$d' "$temp_file") # Remove first and last line  
+  dnf_count=$(echo "$dnf_output" | grep -cE 'Upgraded|Installed|Updated|Reinstalled')
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "DNF update completed. Updated $dnf_count of $dnf_count packages."
+  rm "$temp_file" # Remove the temporary file
 else
-    echo "Nothing to do."
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "No DNF updates found."
+  echo "Nothing to do."
 fi
 
 # Handling RPM configuration files
@@ -155,32 +151,64 @@ else
   echo "$autoRemove"
 fi
 
-# Updating Flatpak packages and removing unused ones
+# Handle Flatpak updates
+flatpak_count=0
 if [ "$skip_flatpak" = false ]; then
-  print_header "Updating Flatpak Packages"
-  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Updating Flatpak packages..."
-  flatpak update $dnf_flags
+  print_header "Checking Flatpak Updates"
+  flatpak_pending=$(flatpak remote-ls --updates | wc -l)  
 
+  # Proceed with the update if there are pending updates
+  if [ "$flatpak_pending" -gt 0 ]; then
+    print_header "Updating Flatpak Packages"
+    dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Updating $flatpak_pending Flatpak packages..."    
+    flatpak_output=$(flatpak update -y $dnf_flags)
+    flatpak_count=$(echo "$flatpak_output" | grep -c "Updated:")
+    dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Flatpak update completed. Updated packages: $flatpak_count"
+  else
+    echo "Nothing to do."
+    dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "No Flatpak updates available."
+  fi
+
+  # Remove unused Flatpak packages
   print_header "Removing Unused Flatpak Packages"
   dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Removing unused Flatpak packages..."
   echo "Looking for unused Flatpak packages…"
-  flatpak uninstall --unused $dnf_flags
+  flatpak uninstall --unused -y $dnf_flags
 fi
 
-# Cleaning up all cached package data
-if [ "$skip_clean_cache" = false ]; then
-  print_header "Cleaning Up Cached Package Data"
-  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Cleaning cached package data..."
-  sudo dnf clean all
+# Handle Driver or Kernel Updates
+total_updates=$((flatpak_count + dnf_count))
+if (( total_updates > 0 )); then
+  print_header "Checking for Driver or Kernel Changes"
+  dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Checking for driver or kernel updates..."
+  has_nvidia=$(echo "$dnf_output" | grep -q -i 'nvidia')
+  has_kernel=$(echo "$dnf_output" | grep -q -i 'kernel')
+  if [ "$has_nvidia" = true ] || [ "$has_kernel" = true ]; then
+    dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Driver and/or kernel update detected. Performing maintenance..."
+    if [ "$has_nvidia" = true ]; then
+      echo "NVIDIA package updates detected."
+      echo "Refreshing akmods..."
+      sudo akmods --force
+    elif [ "$has_kernel" = true ]; then
+      echo "Kernel package updates detected."
+    fi
+    echo "Performing dracut..."
+    sudo dracut --force
+    echo "Completed dracut!"
+    dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Completed maintenance."
+  else 
+    echo "Nothing to do."
+    dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "No maintenance required."
+  fi
 fi
 
+# HANDLE FINISHED UPDATES
+# Display notification if updates were found and remove log file if none
 echo
 print_title "SYSTEM UPDATES COMPLETED"
-
-# Display notification if updates were found and remove log file if none
 keep_log=true
-if (( updated_count > 0 )); then
-  result="$updated_count packages were updated successfully!"
+if (( total_updates > 0 )); then
+  result="$total_updates packages were updated successfully!"
   org_files_by_date -d 90 "$LOG_DIR" > /dev/null 2>&1 # Organize log files by date and remove older than 90 days
 else
   result="No updates found."
