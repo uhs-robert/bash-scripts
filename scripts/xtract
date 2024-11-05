@@ -6,16 +6,19 @@ source "$(dirname "$0")/bash_utilities"
 # Function to display help information
 show_help() {
   print_title "HELP INFORMATION"
-  print_header "Usage: $(basename "$0") [-d] <file_type>"
-  echo "This script extracts files of the specified type from the current directory."
-  echo
+  printf "${BOLD}${BLUE}Usage: $(basename "$0") [-d] <file_type>${ENDL}"
+  printf "This script extracts files of the specified type from the current directory.${ENDL}"
+
   print_header "Options:"
-  echo -e "  $(color_bold_blue "-d")               Extract files into their own directories named after the file."
-  echo -e "  $(color_bold_blue "<file_type>")      The type of files to extract (e.g., .zip, .tar, .gz)."
-  echo
+  printf "  ${BOLD}${BLUE}-d${ENDL}               Extract files into their own directories named after the file."
+  printf "  ${BOLD}${BLUE}<file_type>${ENDL}      The type of files to extract (e.g., .zip, .tar, .gz)."
+  printf "${ENDL}"
+
   print_header "Examples:"
-  echo -e "  $(color_blue "$(basename "$0") .zip")                        Extract all .zip files in the current directory."
-  echo -e "  $(color_blue "$(basename "$0") -d .tar")                   Extract all .tar files into their own directories."
+  local script_name=$(basename "$0")
+  printf "  ${BLUE}${script_name} .zip${ENDL}                      Extract all .zip files in the current directory."
+  printf "  ${BLUE}${script_name} -d .tar${ENDL}                   Extract all .tar files into their own directories."
+
   exit 0
 }
 
@@ -36,7 +39,7 @@ fi
 if [ -n "$1" ]; then
   file_type="$1"
 else
-  color_red "Error: No file type specified."
+  printf "${RED}Error: No file type specified.${ENDL}"
   show_help
 fi
 
@@ -61,7 +64,7 @@ for file in *"$file_type"; do
       .tar.xz) tar -xJf "$file" -C "$dir" ;;
       .gz) gunzip -c "$file" > "$dir/${file%.*}" ;;
       .bz2) bunzip2 -c "$file" > "$dir/${file%.*}" ;;
-      *) color_red "Unsupported file type: $file_type" ;;
+      *) printf "${RED}Unsupported file type: $file_type${ENDL}" ;;
     esac
   else
     # Extract the file into the current directory
@@ -75,7 +78,7 @@ for file in *"$file_type"; do
       .tar.xz) tar -xJf "$file" -C . ;;
       .gz) gunzip -c "$file" > "${file%.*}" ;;
       .bz2) bunzip2 -c "$file" > "${file%.*}" ;;
-      *) color_red "Unsupported file type: $file_type" ;;
+      *) printf "${RED}Unsupported file type: $file_type${ENDL}" ;;
     esac
   fi
 done

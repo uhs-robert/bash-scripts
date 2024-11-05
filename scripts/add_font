@@ -9,9 +9,9 @@ show_help() {
   print_header "Usage: $(basename $0) <url>"
   echo "This script downloads and installs a font from a specified URL."
   print_header "Options:"
-  echo "  $(color_bold_blue 'url')        The URL of the font zip file to download."
+  printf "${BLUE_BOLD}url${ENDL}        The URL of the font zip file to download."
   print_header "Examples:"
-  echo "  $(color_blue "$(basename "$0") https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip")"
+  printf "${BLUE}$(basename "$0") https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip${ENDL}"
   exit 0
 }
 
@@ -21,7 +21,7 @@ if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 fi
 
 if [ -z "$1" ]; then
-  color_red "Error: No URL provided."
+  printf "${RED}Error: No URL provided.${ENDL}"
   show_help
 fi
 
@@ -38,7 +38,7 @@ filename=$(basename "$url")
 wget -P ~/.local/share/fonts "$url"
 
 # Navigate to the fonts directory
-cd ~/.local/share/fonts || { color_red "Error: Failed to navigate to the fonts directory."; exit 1; }
+cd ~/.local/share/fonts || { printf "${RED}Error: Failed to navigate to the fonts directory.${ENDL}"; exit 1; }
 
 # Unzip the downloaded file
 unzip "$filename"
@@ -51,3 +51,4 @@ fc-cache -fv
 
 # Title indication
 print_title "FONT INSTALLATION SCRIPT COMPLETED"
+

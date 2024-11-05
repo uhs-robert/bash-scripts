@@ -7,13 +7,15 @@ source "$(dirname "$0")/bash_utilities"
 show_help() {
   print_title "HELP INFORMATION"
   print_header "Usage: $(basename "$0") [OPTIONS] [DIRECTORY]"
-  echo "This script finds and deletes empty directories."
+  printf "${BLUE}This script finds and deletes empty directories.${ENDL}"
+
   print_header "Options:"
-  echo -e "  $(color_bold_blue "-h, --help")     Display this help message."
-  echo -e "  $(color_bold_blue "[DIRECTORY]")    The directory to search for empty directories. If not provided, defaults to the current directory."
+  printf "${BOLD_BLUE}  -h, --help${ENDL}     ${BLUE}Display this help message.${ENDL}"
+  printf "${BOLD_BLUE}  [DIRECTORY]${ENDL}    ${BLUE}The directory to search for empty directories. If not provided, defaults to the current directory.${ENDL}"
+  
   print_header "Examples:"
-  echo -e "  $(color_blue "$(basename "$0") /path/to/directory")  Find and delete empty directories in the specified directory."
-  echo -e "  $(color_blue "$(basename "$0")")                     Find and delete empty directories in the current directory."
+  printf "${BLUE}  $(basename "$0") /path/to/directory${ENDL}  ${BLUE}Find and delete empty directories in the specified directory.${ENDL}"
+  printf "${BLUE}  $(basename "$0")${ENDL}                     ${BLUE}Find and delete empty directories in the current directory.${ENDL}"
   exit 0
 }
 
@@ -25,7 +27,7 @@ while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
       show_help
       ;;
     * )
-      echo "Invalid option: $1" 1>&2
+      printf "${RED}Invalid option: $1${ENDL}" 1>&2
       show_help
       ;;
   esac
@@ -41,7 +43,7 @@ fi
 
 # Check if the provided target is a directory
 if [ ! -d "$target_dir" ]; then
-  color_red "Error: $target_dir is not a valid directory."
+  printf "${RED}Error: $target_dir is not a valid directory.${ENDL}"
   exit 1
 fi
 
@@ -54,16 +56,16 @@ empty_dirs=$(find "$target_dir" -type d -empty)
 
 # Output each empty directory before deletion
 if [ -n "$empty_dirs" ]; then
-  echo "The following empty directories will be deleted:"
+  printf "${BLUE}The following empty directories will be deleted:${ENDL}"
   echo "$empty_dirs"
   
   # Ask for confirmation before deletion
   if confirm_action "Do you want to proceed with deletion? (y/n)"; then
     # Delete the empty directories
     find "$target_dir" -type d -empty -delete
-    echo "Empty directories have been deleted."
+    printf "${GREEN}Empty directories have been deleted.${ENDL}"
   else
-    echo "Deletion canceled."
+    printf "${YELLOW}Deletion canceled.${ENDL}"
   fi
 else
   echo "No empty directories found in $target_dir."
@@ -71,3 +73,4 @@ fi
 
 # End operation
 print_title "EMPTY DIRECTORY DELETION COMPLETE"
+echo "Directory: file//:$target_dir"

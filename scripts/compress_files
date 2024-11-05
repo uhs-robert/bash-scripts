@@ -14,14 +14,16 @@ show_help() {
   print_title "HELP INFORMATION"
   print_header "Usage: $(basename $0) [OPTIONS] [DIRECTORY]"
   echo "This script compresses files in the specified directory (or current directory if not provided) using the specified archive format."
+  
   print_header "Options:"
-  echo "  $(color_bold_blue '-d')                   Delete original files after compression."
-  echo "  $(color_bold_blue '-f <file_type>')       Specify the file type to compress (default is '*')."
-  echo "  $(color_bold_blue '-a <archive_format>')  Specify the archive format: zip, 7z, rar, tar, tar.gz, tar.bz2 (default is 'zip')."
-  echo "  $(color_bold_blue '-h, --help')           Display this help message."
+  printf "${BLUE}-d${ENDL}                   Delete original files after compression.\n"
+  printf "${BLUE}-f <file_type>${ENDL}       Specify the file type to compress (default is '*').\n"
+  printf "${BLUE}-a <archive_format>${ENDL}  Specify the archive format: zip, 7z, rar, tar, tar.gz, tar.bz2 (default is 'zip').\n"
+  printf "${BLUE}-h, --help${ENDL}           Display this help message.\n"
+  
   print_header "Examples:"
-  echo "  $(color_blue "$(basename "$0") -d -f *.txt -a zip /directory/path")  Compress all .txt files into .zip in the specified directory, delete originals."
-  echo "  $(color_blue "$(basename "$0") -f *.log -a tar.gz")                     Compress all .log files into tar.gz in the current directory."
+  printf "${BLUE}$(basename "$0") -d -f *.txt -a zip /directory/path${ENDL}  Compress all .txt files into .zip in the specified directory, delete originals.\n"
+  printf "${BLUE}$(basename "$0") -f *.log -a tar.gz${ENDL}                     Compress all .log files into tar.gz in the current directory.\n"
   exit 0
 }
 
@@ -46,7 +48,7 @@ while [[ "$#" -gt 0 ]]; do
       if [[ -d "$1" ]]; then
         target_directory="$1"
       else
-        color_red "Unknown option or invalid directory: $1"
+        printf "${RED}Unknown option or invalid directory: $1${ENDL}"
         show_help
       fi
       ;;
@@ -81,7 +83,7 @@ for file in "$target_directory"/$file_type; do
         tar -cjvf "${file%.*}.tar.bz2" "$file" 
         ;;
       *) 
-        color_red "Unsupported archive format: $archive_format" 
+        printf "${RED}Unsupported archive format: $archive_format${ENDL}" 
         ;;
     esac
 
@@ -91,7 +93,7 @@ for file in "$target_directory"/$file_type; do
     fi
   fi
 done
-color_green "Complete!"
+printf "${GREEN}Complete!${ENDL}"
 
 # End operation
 print_title "FILE COMPRESSION COMPLETE"

@@ -7,17 +7,19 @@ source "$(dirname "$0")/bash_utilities"
 show_help() {
   print_title "HELP INFORMATION"
   print_header "Usage: $(basename $0) [OPTIONS] [DIRECTORY]"
-  echo "This script organizes files in the specified directory and its subdirectories"
-  echo "into folders based on their creation date (or modification date if creation"
-  echo "date is not available). The files will be moved (default) or copied into"
-  echo "directories named by year and month."
+  printf "${BLUE}This script organizes files in the specified directory and its subdirectories\n"
+  printf "into folders based on their creation date (or modification date if creation\n"
+  printf "date is not available). The files will be moved (default) or copied into\n"
+  printf "directories named by year and month.${ENDL}"
+  
   print_header "Options:"
-  echo "  $(color_bold_blue '-c')         Copy files instead of moving them."
-  echo "  $(color_bold_blue '-d DAYS')    Delete files older than the specified number of days."
-  echo "  $(color_bold_blue '-h, --help') Display this help message."
+  printf "${BLUE}  -c${ENDL}         Copy files instead of moving them."
+  printf "${BLUE}  -d DAYS${ENDL}    Delete files older than the specified number of days."
+  printf "${BLUE}  -h, --help${ENDL} Display this help message."
+  
   print_header "Examples:"
-  echo "  $(color_blue "$(basename "$0") -c -d 90 /path/to/directory")  Copy files and delete files older than 90 days."
-  echo "  $(color_blue "$(basename "$0") /path/to/directory")           Move files to respective folders."
+  printf "${BLUE}  $(echo "$(basename "$0") -c -d 90 /path/to/directory")  Copy files and delete files older than 90 days.${ENDL}"
+  printf "${BLUE}  $(echo "$(basename "$0") /path/to/directory")           Move files to respective folders.${ENDL}"
   exit 0
 }
 
@@ -31,36 +33,21 @@ get_creation_date() {
 copy_files=false
 delete_days=""
 
-# Parse command line options
-while getopts ":cd:h-:" opt; do
-  case ${opt} in
-    c )
-      copy_files=true
-      ;;
-    d )
-      delete_days="$OPTARG"
-      ;;
-    h )
-      show_help
-      ;;
-    - )
-      case "${OPTARG}" in
-        help )
-          show_help
-          ;;
-        * )
-          color_red "Invalid option: --${OPTARG}"
-          show_help
-          ;;
-      esac
-      ;;
-    \? )
-      color_red "Invalid option: -$OPTARG"
-      show_help
-      ;;
+# Parse command-line options
+while getopts "cd:h-" opt; do
+  case $opt in
+    c) copy_files=true;;
+    d) delete_days="$OPTARG";;
+    h) show_help;;
+    -)
+      case $OPTARG in
+        help) show_help;;
+        *) printf "${RED}Invalid option: --$OPTARG${ENDL}"; show_help;;
+      esac;;
+    \?) printf "${RED}Invalid option: -$OPTARG${ENDL}"; show_help;;
   esac
 done
-shift $((OPTIND -1))
+shift $((OPTIND - 1))
 
 # Set the target directory
 DIRECTORY="${1:-.}"
@@ -87,12 +74,10 @@ find "$DIRECTORY" -type f | while read -r file; do
   mkdir -p "$target_dir"
 
   # Move or copy the file to the target directory
-  if [ "$copy_files" == true ]; then
-    cp "$file" "$target_dir"
-    echo "Copied: $file to $target_dir"
+  if [ "$copy_files" = true ]; then
+    cp "$file" "$target_dir" && printf "${GREEN}Copied: $file to $target_dir${ENDL}"
   else
-    mv "$file" "$target_dir"
-    echo "Moved: $file to $target_dir"
+    mv "$file" "$target_dir" && printf "${GREEN}Moved: $file to $target_dir${ENDL}"
   fi
 done
 
@@ -103,5 +88,6 @@ if [[ -n "$delete_days" ]]; then
 fi
 
 # End operation
-color_green "Complete!"
+printf "${GREEN}Complete!${ENDL}"
 print_title "FILE ORGANIZATION COMPLETE"
+echo "All files in $DIRECTORY have been organized into Year/Month folders."

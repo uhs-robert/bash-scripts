@@ -1,35 +1,32 @@
 #!/bin/bash
 
-# Color functions
-# Display text in green
-color_green() {
-  echo -e "\033[32m$1\033[0m"
-}
+# Define ANSI escape codes as variables
+NC="\033[0m"
+ENDL="${NC}\n" 
 
-# Display text in red
-color_red() {
-  echo -e "\033[31m$1\033[0m"
-}
+# Color codes
+RED="\033[31m"
+ORANGE="\033[38;5;208m"
+YELLOW="\033[33m"
+GREEN="\033[32m"
+BLUE="\033[38;5;33m"
+INDIGO="\033[38;5;54m"
+VIOLET="\033[38;5;93m"
 
-# Display text in blue
-color_blue() {
-  echo -e "\033[38;5;33m$1\033[0m"
-}
+# Extra colors
+CYAN="\033[36m"
+PINK="\033[38;5;213m"
+WHITE="\033[97m"
+BLACK="\033[30m"
+GRAY="\033[90m"
 
-# Display text in bold blue
-color_bold_blue() {
-  echo -e "\033[1;34m$1\033[0m"
-}
-
-# Display text in orange
-color_orange() {
-  echo -e "\033[38;5;208m$1\033[0m"
-}
-
-# Display text in cyan
-color_cyan() {
-  echo -e "\033[36m$1\033[0m"
-}
+# Text Styles
+UNDERLINE="\033[4m"
+ITALIC="\033[3m"           # Limited support
+BLINK="\033[5m"            # Limited support
+REVERSE="\033[7m"
+DIM="\033[2m"
+STRIKETHROUGH="\033[9m"    # Limited support
 
 # Function to print a section header
 print_header() {
@@ -37,29 +34,29 @@ print_header() {
   local length=${#header}
   local border=$(printf "%-${length}s" " " | sed "s/ /─/g")
   echo ""
-  color_orange "$header"
-  color_orange "$border"
+  printf "${ORANGE}$header${ENDL}"
+  printf "${ORANGE}$border${ENDL}"
 }
 
 # Function to print a centered title with a full-width border
 print_title() {
-  local title="$1"
-  local title_upper=$(echo "$title" | tr '[:lower:]' '[:upper:]')  # Convert title to uppercase
-  local width=$(tput cols)  # Get the current terminal width
-  local title_length=${#title_upper}
-  local border_length=$(( (width - title_length - 2) / 2 ))  # Calculate border length for both sides
+  local TITLE="$1"
+  local TITLE_UPPER=$(echo "$TITLE" | tr '[:lower:]' '[:upper:]')  # Convert title to uppercase
+  local WIDTH=$(tput cols)  # Get the current terminal width
+  local TITLE_LEN=${#TITLE_UPPER}
+  local BORDER_LEN=$(( (WIDTH - TITLE_LEN - 2) / 2 ))  # Calculate border length for both sides
 
   # Create the border using the line character
-  local border=$(printf "%-${border_length}s" " " | sed "s/ /─/g")  # Replace spaces with lines
+  local BORDER=$(printf "%-${BORDER_LEN}s" " " | sed "s/ /─/g")  # Replace spaces with lines
 
   # Print the full-width line with the title centered
-  color_cyan "${border} ${title_upper} ${border}"
+  printf "${CYAN}${BORDER} ${TITLE_UPPER} ${BORDER} ${ENDL}"
 }
 
 # Function to log a message with a timestamp
 log_message() {
   local message="$1"
-  echo -e "$(color_cyan "$(date '+%Y-%m-%d %H:%M:%S')") - $message"
+  echo -e "$(echo_cyan "$(date '+%Y-%m-%d %H:%M:%S')") - $message"
 }
 
 # Function to handle errors and log a message
@@ -84,7 +81,7 @@ confirm_action() {
 
 # Function to check if a command is installed
 check_dependency() {
-  command -v "$1" >/dev/null 2>&1 || { echo >&2 "$(color_red "Error: $1 is not installed. Please install it.")"; exit 1; }
+  command -v "$1" >/dev/null 2>&1 || { echo >&2 "$(echo_red "Error: $1 is not installed. Please install it.")"; exit 1; }
 }
 
 # Function to pause execution for a specified number of seconds

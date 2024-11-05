@@ -9,11 +9,13 @@ source "$(dirname "$0")/bash_utilities"
 # Function to display help information
 show_help() {
   print_title "HELP INFORMATION"
+  
   print_header "Usage: $(basename $0) [OPTIONS] [DIRECTORY]"
-  echo "This script grants executable permissions to each file in the specified directory (or './scripts' if not provided)."
+  printf "${BLUE}This script grants executable permissions to each file in the specified directory (or './scripts' if not provided).${ENDL}"
+  
   print_header "Options:"
-  echo "  $(color_bold_blue '-d <directory>')      Specify the directory to process (default is './scripts')."
-  echo "  $(color_bold_blue '-h, --help')           Display this help message."
+  printf "${BLUE}  -d <directory>      Specify the directory to process (default is './scripts').${ENDL}"
+  printf "${BLUE}  -h, --help           Display this help message.${ENDL}"
   exit 0
 }
 
@@ -28,7 +30,7 @@ while [[ "$#" -gt 0 ]]; do
       show_help
       ;;
     *) 
-      echo -e "$(color_red "Error: Invalid option: $1")"
+      printf "${RED}Error: Invalid option: $1${ENDL}"
       show_help
       ;;
   esac
@@ -40,7 +42,7 @@ SCRIPTS_DIR="${SCRIPTS_DIR:-./scripts}"
 
 # Check if the directory exists
 if [ ! -d "$SCRIPTS_DIR" ]; then
-  echo -e "$(color_red "Error: The directory '$SCRIPTS_DIR' does not exist.")"
+  printf "${RED}Error: The directory '$SCRIPTS_DIR' does not exist.${ENDL}"
   exit 1
 fi
 
@@ -48,10 +50,10 @@ fi
 for file in "$SCRIPTS_DIR"/*; do
   if [ -f "$file" ]; then
     chmod +x "$file"
-    echo "$(color_green "Made '$file' executable.")"
+    printf "${GREEN}Made '$file' executable.${ENDL}"
   else
-    echo "$(color_orange "Skipping '$file', not a regular file.")"
+    printf "${YELLOW}Skipping '$file', not a regular file.${ENDL}"
   fi
 done
 
-echo "$(color_cyan "All files in '$SCRIPTS_DIR' have been processed.")"
+printf "${CYAN}All files in '$SCRIPTS_DIR' have been processed.${ENDL}"

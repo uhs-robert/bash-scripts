@@ -7,17 +7,19 @@ source "$(dirname "$0")/bash_utilities"
 show_help() {
   print_title "HELP INFORMATION"
   print_header "Usage: $(basename "$0") [options] [file|URL]"
-  echo "This script downloads audio from YouTube URLs provided in a file or a single URL."
-  echo "Downloaded audio files will be saved in the specified output directory or the current directory if not provided."
+  printf "${CYAN}This script downloads audio from YouTube URLs provided in a file or a single URL.${ENDL}"
+  printf "${CYAN}Downloaded audio files will be saved in the specified output directory or the current directory if not provided.${ENDL}"
+  
   print_header "Options:"
-  echo -e "  $(color_bold_blue "-o [directory]")      Specify the output directory for downloaded audio files."
-  echo -e "  $(color_bold_blue "[file]")              A text file containing YouTube URLs (one per line)."
-  echo -e "  $(color_bold_blue "[URL]")               A single YouTube URL or playlist to download audio from."
+  printf "  ${BOLD_BLUE}-o [directory]${ENDL}      Specify the output directory for downloaded audio files."
+  printf "  ${BOLD_BLUE}[file]${ENDL}              A text file containing YouTube URLs (one per line)."
+  printf "  ${BOLD_BLUE}[URL]${ENDL}               A single YouTube URL or playlist to download audio from."
+  
   print_header "Examples:"
-  echo -e "  $(color_blue "$(basename "$0") -o /path/to/output /path/to/urls.txt")               Download audio from all URLs listed in 'urls.txt' to the specified output directory."
-  echo -e "  $(color_blue "$(basename "$0") -o /path/to/output https://youtube.com/watch?v=dQw4w9WgXcQ")   Download audio from the specified YouTube URL to the specified output directory."
-  echo -e "  $(color_blue "$(basename "$0") /path/to/urls.txt")                                    Download audio from all URLs listed in 'urls.txt' to the current directory."
-  echo -e "  $(color_blue "$(basename "$0") https://youtube.com/watch?v=dQw4w9WgXcQ")            Download audio from the specified YouTube URL to the current directory."
+  printf "  ${BLUE}$(basename "$0") -o /path/to/output /path/to/urls.txt${ENDL}               Download audio from all URLs listed in 'urls.txt' to the specified output directory."
+  printf "  ${BLUE}$(basename "$0") -o /path/to/output https://youtube.com/watch?v=dQw4w9WgXcQ${ENDL}   Download audio from the specified YouTube URL to the specified output directory."
+  printf "  ${BLUE}$(basename "$0") /path/to/urls.txt${ENDL}                                    Download audio from all URLs listed in 'urls.txt' to the current directory."
+  printf "  ${BLUE}$(basename "$0") https://youtube.com/watch?v=dQw4w9WgXcQ${ENDL}            Download audio from the specified YouTube URL to the current directory."
   exit 0
 }
 
@@ -44,7 +46,7 @@ done
 if [ -f "$1" ]; then
   # Read URLs from the file and download each
   while IFS= read -r url; do
-    echo "Downloading audio from: $url" # Echo for each URL being processed
+    echo "Downloading audio from: $url"
     yt-dlp -x --audio-format mp3 --embed-thumbnail -o "$output_directory/%(title)s.%(ext)s" "$url"
   done < "$1"
 else
@@ -55,3 +57,4 @@ fi
 
 print_title "DOWNLOADS COMPLETE"
 echo "Downloaded audio files are located in: $output_directory"
+

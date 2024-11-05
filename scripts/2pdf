@@ -5,23 +5,28 @@ source "$(dirname "$0")/bash_utilities"
 
 # Function to display help information
 show_help() {
-  print_title "HELP INFORMATION"
-  print_header "Usage: $(basename "$0") [OPTIONS] [DIRECTORY|FILE]"
-  echo "This script converts various document formats to PDF using LibreOffice."
-  echo "Supported formats include .doc, .docx, .odt, .rtf, .txt, and .html."
-  print_header "Options:"
-  echo -e "  $(color_bold_blue "-h, --help")          Display this help message."
-  echo -e "  $(color_bold_blue "[DIRECTORY|FILE]")    Directory to loop through or specific file to convert. If none are provided, the current directory is used."
-  print_header "Examples:"
-  echo -e "  $(color_blue "$(basename "$0") path/to/directory")                Convert all supported files in the directory to PDF."
-  echo -e "  $(color_blue "$(basename "$0") path/to/my_file.doc")              Convert 'my_file.doc' to PDF from the specified directory."
-  echo -e "  $(color_blue "$(basename "$0")")                                  Convert all supported files in the current directory to PDF."
+  printf "${BOLD}${BLUE}HELP INFORMATION${NC}${ENDL}"
+  printf "${BOLD}Usage:${NC} $(basename "$0") [OPTIONS] [DIRECTORY|FILE]${ENDL}"
+  printf "${NC}This script converts various document formats to PDF using LibreOffice.${ENDL}"
+  printf "${NC}Supported formats include .doc, .docx, .odt, .rtf, .txt, and .html.${ENDL}${ENDL}"
+
+  printf "${BOLD}Options:${NC}${ENDL}"
+  printf "  ${BOLD}${BLUE}-h, --help${NC}          Display this help message.${ENDL}"
+  printf "  ${BOLD}${BLUE}[DIRECTORY|FILE]${NC}    Directory to loop through or specific file to convert.${ENDL}"
+  printf "                                  If none are provided, the current directory is used.${ENDL}${ENDL}"
+
+  printf "${BOLD}Examples:${NC}${ENDL}"
+  local cmd=$(basename "$0")
+  printf "  ${BLUE}${cmd} path/to/directory${NC}                Convert all supported files in the directory to PDF.${ENDL}"
+  printf "  ${BLUE}${cmd} path/to/my_file.doc${NC}              Convert 'my_file.doc' to PDF from the specified directory.${ENDL}"
+  printf "  ${BLUE}${cmd}${NC}                                  Convert all supported files in the current directory to PDF.${ENDL}"
+
   exit 0
 }
 
 # Check if LibreOffice is installed
 if ! command -v libreoffice &> /dev/null; then
-  color_red "LibreOffice is required but not installed. Please install LibreOffice to use this script."
+  printf "${RED}LibreOffice is required but not installed. Please install LibreOffice to use this script.${ENDL}"
   exit 1
 fi
 
@@ -32,7 +37,7 @@ while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
       show_help
       ;;
     * )
-      color_red "Invalid option: $1"
+      printf "${RED}Invalid option: $1${ENDL}"
       show_help
       ;;
   esac
@@ -46,7 +51,7 @@ if [ -n "$1" ]; then
   elif [ -f "$1" ]; then
     target_file="$1"
   else
-    color_red "Error: $1 is not a valid directory or file."
+    printf "${RED}Error: $1 is not a valid directory or file.${ENDL}"
     exit 1
   fi
 else
@@ -62,8 +67,6 @@ convert_files() {
     for file in $file_type; do
       if [ -f "$file" ]; then # Check if it is a file
         echo "Converting $file to PDF..."
-        
-        # Convert the file to PDF
         libreoffice --headless --convert-to pdf "$file" && echo "Output placed in the same directory as $file"
       fi
     done

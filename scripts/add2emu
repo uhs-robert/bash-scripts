@@ -13,16 +13,17 @@ show_help() {
   print_header "Usage: $(basename "$0") <emulator_name> [type]"
   echo "This script moves all files from the current directory to a specified emulator folder."
   echo "The emulator folder is determined by the emulator name and the type specifies the base folder."
+  
   print_header "Options:"
-  echo -e "  $(color_bold_blue "<emulator_name>")       The name of the emulator folder where files will be moved."
-  echo -e "  $(color_bold_blue "[type]")                The base folder type. Can be 'rom' (default) or 'music'."
-  echo -e "  $(color_bold_blue "-h, --help")            Display this help message."
+  printf "  ${BLUE}<emulator_name>${ENDL}       The name of the emulator folder where files will be moved.\n"
+  printf "  ${BLUE}[type]${ENDL}                The base folder type. Can be 'rom' (default) or 'music'.\n"
+  printf "  ${BLUE}-h, --help${ENDL}            Display this help message.\n"
+  
   print_header "Examples:"
-  echo -e "  $(color_blue "$(basename "$0") emulator_name")                Moves rom files to emulator_name."
-  echo -e "  $(color_blue "$(basename "$0") emulator_name music")          Moves music files to emulator_name."
+  printf "  ${BLUE}$(basename "$0") emulator_name${ENDL}                Moves rom files to emulator_name.\n"
+  printf "  ${BLUE}$(basename "$0") emulator_name music${ENDL}          Moves music files to emulator_name.\n"
   exit 0
 }
-
 
 # Check for help option
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
@@ -31,14 +32,14 @@ fi
 
 # Check if the emulator name parameter is provided
 if [ -z "$1" ]; then
-  color_red "Error: No emulator name specified."
+  printf "${RED}Error: No emulator name specified.${ENDL}"
   echo "Usage: $(basename "$0") <emulator_name> [type]"
   exit 1
 fi
 
 # Check if the external media is connected
 if ! mount | grep -q $base_path; then
-  color_red "Error: No external media found at $base_path."
+  printf "${RED}Error: No external media found at $base_path.${ENDL}"
   exit 1
 fi
 
@@ -66,10 +67,10 @@ print_title "Moving Files to Emulator Directory"
 # Check if pv is installed
 print_header "Checking Dependencies"
 if ! command -v pv &> /dev/null; then
-  color_red "Error: pv is not installed. Installing..."
+  printf "${RED}Error: pv is not installed. Installing...${ENDL}"
   sudo dnf install -y pv
 else
-  color_green "pv is already installed."
+  printf "${GREEN}pv is already installed.${ENDL}"
 fi
 
 # Check if the destination directory exists, create if it doesn't
@@ -95,10 +96,11 @@ for file in *; do
     if [ $? -eq 0 ]; then
       rm "$file"  # Remove the original file
     else
-      color_red "Failed to move $file"
+      printf "${RED}Failed to move $file${ENDL}"
     fi
   fi
 done
 
 print_title "Files moved to Emulator Directory"
-color_blue "Emulator Directory: $destination."
+printf "${BLUE}Emulator Directory: $destination.${ENDL}"
+
