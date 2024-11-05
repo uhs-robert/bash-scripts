@@ -177,7 +177,7 @@ if [ "$skip_flatpak" = false ]; then
 fi
 
 # Handle Driver or Kernel Updates
-total_updates=$((flatpak_count + dnf_count))
+total_updates=$(($flatpak_count + $dnf_count))
 if (( total_updates > 0 )); then
   print_header "Checking for Driver or Kernel Changes"
   dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Checking for driver or kernel updates..."
