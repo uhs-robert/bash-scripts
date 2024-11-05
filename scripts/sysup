@@ -10,20 +10,19 @@ cleanup() {
   rm -f "$TEMP_FILE"
   TOTAL_UPDATES=$(( ${DNF_COUNT:-0} + ${FLATPAK_COUNT:-0} ))
   if (( TOTAL_UPDATES <= 0 )); then
-    echo "No updates found, deleting log file." 
+    printf "${RED}No updates found, deleting log file.${ENDL}"
     rm -f "$LOG_FILE"
   else 
-    echo "$TOTAL_UPDATES packages were updated. Log file: file://$LOG_FILE"
+    printf "${GREEN}$TOTAL_UPDATES packages were updated. Log file: file://$LOG_FILE${ENDL}"
     if [ -f /var/run/reboot-required ]; then
-      printf "${ORANGE}Reboot required to apply updates.${NC}\n"
+      printf "${ORANGE}Reboot required to apply updates.${ENDL}"
     fi
   fi
 }
 
 # Function to handle terminal actions
 give_terminal_exit_choices() {
-  echo
-  echo "What would you like to do next?"
+  printf "\nWhat would you like to do next?${ENDL}"
   if [ "$NEEDS_REBOOT" = true ]; then
     printf "${ORANGE}A system reboot is required to apply all updates.${ENDL}"
   fi
@@ -70,24 +69,23 @@ give_notification_exit_choices() {
 show_help() {
   print_title "HELP INFORMATION"
   print_header "Usage: $(basename "$0") [OPTIONS]"
-  printf "This script performs a comprehensive system update on Fedora, including DNF package updates, security updates,\n"
-  printf "cleanup of old packages, updating Flatpak packages, and cleaning up cached package data.\n\n"
+  printf "${GREEN}This script performs a comprehensive system update on Fedora, including DNF package updates, security updates, cleanup of old packages, updating Flatpak packages, and cleaning up cached package data.${ENDL}"
 
   print_header "Options:"
-  printf "  ${BOLD}${BLUE}-s, --skip-security${NC}        Skip security updates.\n"
-  printf "  ${BOLD}${BLUE}-f, --skip-flatpak${NC}         Skip Flatpak updates.\n"
-  printf "  ${BOLD}${BLUE}-c, --skip-clean-cache${NC}     Skip cleaning the DNF cache.\n"
-  printf "  ${BOLD}${BLUE}-n, --no-confirm${NC}           Run DNF commands without the '-y' flag to require user confirmation.\n"
-  printf "  ${BOLD}${BLUE}-h, --help${NC}                 Display this help message.\n\n"
+  printf "  ${BOLD}${BLUE}-s, --skip-security${NC}        Skip security updates.${ENDL}"
+  printf "  ${BOLD}${BLUE}-f, --skip-flatpak${NC}         Skip Flatpak updates.${ENDL}"
+  printf "  ${BOLD}${BLUE}-c, --skip-clean-cache${NC}     Skip cleaning the DNF cache.${ENDL}"
+  printf "  ${BOLD}${BLUE}-n, --no-confirm${NC}           Run DNF commands without the '-y' flag to require user confirmation.${ENDL}"
+  printf "  ${BOLD}${BLUE}-h, --help${NC}                 Display this help message.${ENDL}\n"
 
   print_header "Examples:"
   local cmd=$(basename "$0")
-  printf "  ${BLUE}${cmd}${NC}                      Run the script to perform system updates with auto-confirmation.\n"
-  printf "  ${BLUE}${cmd} -s${NC}                   Perform system updates without checking for security updates.\n"
-  printf "  ${BLUE}${cmd} -f${NC}                   Perform system updates without updating Flatpak packages.\n"
-  printf "  ${BLUE}${cmd} -c${NC}                   Perform system updates without cleaning the DNF cache.\n"
-  printf "  ${BLUE}${cmd} -n${NC}                   Perform system updates with user confirmation for each DNF operation.\n"
-  printf "  ${BLUE}${cmd} -s -f -c${NC}             Combine multiple options to skip security updates, Flatpak updates, and DNF cache cleaning.\n"
+  printf "  ${BLUE}${cmd}${NC}                      Run the script to perform system updates with auto-confirmation.${ENDL}"
+  printf "  ${BLUE}${cmd} -s${NC}                   Perform system updates without checking for security updates.${ENDL}"
+  printf "  ${BLUE}${cmd} -f${NC}                   Perform system updates without updating Flatpak packages.${ENDL}"
+  printf "  ${BLUE}${cmd} -c${NC}                   Perform system updates without cleaning the DNF cache.${ENDL}"
+  printf "  ${BLUE}${cmd} -n${NC}                   Perform system updates with user confirmation for each DNF operation.${ENDL}"
+  printf "  ${BLUE}${cmd} -s -f -c${NC}             Combine multiple options to skip security updates, Flatpak updates, and DNF cache cleaning.${ENDL}"
   
   exit 0
 }
@@ -194,7 +192,7 @@ if [ "$SKIP_SECURITY" = false ]; then
   SECURITY_UPDATES=$(sudo dnf check-update --security)
   if echo "$SECURITY_UPDATES" | grep -q "Security"; then
     sudo dnf update --security $DNF_FLAGS
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 "System Update" "Installed security updates."
+    printf "${GREEN}Installed security updates.${ENDL}"
   else 
     echo "Nothing to do."
   fi
@@ -206,7 +204,7 @@ print_header "Cleaning Up Old Packages"
   dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Cleaning up old packages..."
   AUTO_REMOVE=$(sudo dnf autoremove $DNF_FLAGS)
   if ! echo "$AUTO_REMOVE" | grep -q "Nothing to do"; then
-    echo "Nothing to do."
+    printf "${YELLOW}%s${ENDL}" "$AUTO_REMOVE"
   else 
     echo "$AUTO_REMOVE"
   fi
@@ -222,7 +220,7 @@ if [ "$SKIP_FLATPAK" = false ]; then
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Updating $FLATPAK_PENDING Flatpak packages..."
     FLATPAK_OUTPUT=$(flatpak update -y $DNF_FLAGS)
     FLATPAK_COUNT=$(echo "$FLATPAK_OUTPUT" | grep -c "Updated:")
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Flatpak update completed. Updated packages: $FLATPAK_COUNT"
+    printf "${GREEN}Flatpak update completed. Updated packages: %s${ENDL}" "$FLATPAK_COUNT"
   else 
     echo "Nothing to do."
     FLATPAK_COUNT=0
@@ -239,21 +237,21 @@ if (( DNF_COUNT > 0 )); then
   HAS_NVIDIA=$(echo "$DNF_OUTPUT" | grep -q -i 'nvidia')
   HAS_KERNEL=$(echo "$DNF_OUTPUT" | grep -q -i 'kernel')
   if echo "$DNF_OUTPUT" | grep -qi 'font'; then
-    echo "Font packages were updated. Rebuilding font cache..."
+    printf "${YELLOW}Font packages were updated. Rebuilding font cache...${ENDL}"
     fc-cache -fv
   fi
   if [ "$HAS_NVIDIA" = true ] || [ "$HAS_KERNEL" = true ]; then
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Driver and/or kernel update detected. Performing maintenance..."
     if [ "$HAS_NVIDIA" = true ]; then
-      echo "NVIDIA package updates detected."
-      echo "Refreshing akmods..."
+      printf "${YELLOW}NVIDIA package updates detected.${ENDL}"
+      printf "${YELLOW}Refreshing akmods...${ENDL}"
       sudo akmods --force
     elif [ "$HAS_KERNEL" = true ]; then
-      echo "Kernel package updates detected."
+      printf "${YELLOW}Kernel package updates detected.${ENDL}"
     fi
-    echo "Performing dracut..."
+    printf "${YELLOW}Performing dracut...${ENDL}"
     sudo dracut --force
-    echo "Completed dracut!"
+    printf "${GREEN}Completed dracut!${ENDL}"
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Completed maintenance."
   fi
 fi
@@ -272,9 +270,9 @@ print_title "SYSTEM UPDATES COMPLETED"
     # Show log file
     print_header "Log File Saved"
     {
-      echo "Open Log directory: file://$LOG_DIR"
-      echo "View Log file: file://$LOG_FILE"
-      echo
+      printf "${YELLOW}Open Log directory: file://%s${ENDL}" "$LOG_DIR"
+      printf "${YELLOW}View Log file: file://%s${ENDL}" "$LOG_FILE"
+      printf "${ENDL}"
     }
   fi
 
