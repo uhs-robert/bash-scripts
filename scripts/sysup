@@ -3,19 +3,37 @@
 # Source the utilities file
 source "$(dirname "$0")/bash_utilities"
 
+# Default values for options
+SKIP_SECURITY=false
+SKIP_FLATPAK=false
+SKIP_CLEAN_CACHE=false
+AUTO_CONFIRM=true
+EXIT_CODE=0
+
 # Clean Up
 cleanup() {
   print_title "CLEANING UP"
-  dunstify -C "$PROGRESS_ID"
-  rm -f "$TEMP_FILE"
+  
+  # Cancel notification if progress ID is set
+  if [ -n "$PROGRESS_ID" ]; then
+    dunstify -C "$PROGRESS_ID"
+  fi
+  
+  # Remove temporary file if it exists
+  [ -n "$TEMP_FILE" ] && rm -f "$TEMP_FILE"
+  
+  # Calculate total updates (using defaults for unset variables)
   TOTAL_UPDATES=$(( ${DNF_COUNT:-0} + ${FLATPAK_COUNT:-0} ))
+  
   if (( TOTAL_UPDATES <= 0 )); then
-    printf "${RED}No updates found, deleting log file.${ENDL}"
-    rm -f "$LOG_FILE"
+    printf "${RED}No updates found, deleting log file.${ENDL}\n"
+    [ -n "$LOG_FILE" ] && rm -f "$LOG_FILE"
   else 
-    printf "${GREEN}$TOTAL_UPDATES packages were updated. Log file: file://$LOG_FILE${ENDL}"
+    printf "${GREEN}$TOTAL_UPDATES packages were updated. Log file: file://$LOG_FILE${ENDL}\n"
+    
+    # Check if a reboot is required
     if [ -f /var/run/reboot-required ]; then
-      printf "${ORANGE}Reboot required to apply updates.${ENDL}"
+      printf "${ORANGE}Reboot required to apply updates.${ENDL}\n"
     fi
   fi
 }
@@ -89,12 +107,6 @@ show_help() {
   
   exit 0
 }
-
-# Default values for options
-SKIP_SECURITY=false
-SKIP_FLATPAK=false
-SKIP_CLEAN_CACHE=false
-AUTO_CONFIRM=true
 
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
