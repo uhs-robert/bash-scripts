@@ -183,6 +183,13 @@ if (( total_updates > 0 )); then
   dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Checking for driver or kernel updates..."
   has_nvidia=$(echo "$dnf_output" | grep -q -i 'nvidia')
   has_kernel=$(echo "$dnf_output" | grep -q -i 'kernel')
+  has_fonts=$(echo "$dnf_output" | grep -q -i 'font')
+  # Handle font cache updates
+  if echo "$dnf_output" | grep -qi 'font'; then
+    echo "Font packages were updated. Rebuilding font cache..."
+    fc-cache -fv
+  fi
+  # Handle driver or kernel updates
   if [ "$has_nvidia" = true ] || [ "$has_kernel" = true ]; then
     dunstify -a "System Update" -r "$progress_id" -t 0 -i $icon "System Update" "Driver and/or kernel update detected. Performing maintenance..."
     if [ "$has_nvidia" = true ]; then
