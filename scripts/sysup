@@ -163,7 +163,7 @@ print_header "Checking DNF Pending Updates"
 {
   dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for DNF updates..."
   DNF_OUTPUT=$(dnf check-update)
-  DNF_COUNT=$(echo "$DNF_OUTPUT" | wc -l)
+  DNF_COUNT=$(echo "$DNF_OUTPUT" | grep -Ec ' updates$')
   NVIDIA_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "nvidia" | wc -l)
   KERNEL_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "kernel" | wc -l)
   FONT_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "font" | wc -l)
