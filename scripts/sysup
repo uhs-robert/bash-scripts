@@ -173,7 +173,8 @@ print_header "Checking DNF Pending Updates"
     TEMP_FILE=$(mktemp)
     script -q -c "sudo dnf update $DNF_FLAGS" "$TEMP_FILE"
     DNF_OUTPUT=$(sed '1d;$d' "$TEMP_FILE")
-    DNF_COUNT=$(echo "$DNF_OUTPUT" | grep -cE 'Upgraded|Installed|Updated|Reinstalled')
+    DNF_SUMMARY=$(echo "$DNF_OUTPUT" | grep -A 2 "Transaction Summary")
+    DNF_COUNT=$(echo "$DNF_SUMMARY" | grep "Upgrading" | awk '{print $2}')
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF update completed. Updated $DNF_COUNT packages."
     rm "$TEMP_FILE"
   else
