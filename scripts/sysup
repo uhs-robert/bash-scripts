@@ -19,9 +19,6 @@ cleanup() {
     dunstify -C "$PROGRESS_ID"
   fi
   
-  # Remove temporary file if it exists
-  [ -n "$TEMP_FILE" ] && rm -f "$TEMP_FILE"
-  
   # Calculate total updates (using defaults for unset variables)
   TOTAL_UPDATES=$(( ${DNF_COUNT:-0} + ${FLATPAK_COUNT:-0} ))
   
@@ -165,20 +162,14 @@ print_title "STARTING SYSTEM UPDATES"
 print_header "Checking DNF Pending Updates"
 {
   dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for DNF updates..."
-  DNF_PENDING=$(dnf check-update | grep -c '^[a-zA-Z]')
+  DNF_COUNT=$(dnf check-update | wc -l)
   ICON="mintupdate-installing"
-  if (( DNF_PENDING > 0 )); then
+  if (( DNF_COUNT > 0 )); then
     print_header "Updating DNF Packages"
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Updating $DNF_PENDING DNF Packages..."
-    TEMP_FILE=$(mktemp)
-    script -q -c "sudo dnf update $DNF_FLAGS" "$TEMP_FILE"
-    DNF_OUTPUT=$(sed '1d;$d' "$TEMP_FILE")
-    DNF_SUMMARY=$(echo "$DNF_OUTPUT" | grep -A 2 "Transaction Summary")
-    DNF_COUNT=$(echo "$DNF_SUMMARY" | grep "Upgrading" | awk '{print $2}')
+    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF updating $DNF_COUNT packages..."
+    sudo dnf update $DNF_FLAGS
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF update completed. Updated $DNF_COUNT packages."
-    rm "$TEMP_FILE"
   else
-    DNF_COUNT=0
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "No DNF updates found."
     echo "Nothing to do."
   fi
@@ -231,7 +222,7 @@ if [ "$SKIP_FLATPAK" = false ]; then
   if [ "$FLATPAK_PENDING" -gt 0 ]; then
     print_header "Updating Flatpak Packages"
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Updating $FLATPAK_PENDING Flatpak packages..."
-    FLATPAK_OUTPUT=$(flatpak update -y $DNF_FLAGS)
+    FLATPAK_OUTPUT=$(flatpak update -y --noninteractive $DNF_FLAGS)
     FLATPAK_COUNT=$(echo "$FLATPAK_OUTPUT" | grep -c "Updated:")
     printf "${GREEN}Flatpak update completed. Updated packages: %s${ENDL}" "$FLATPAK_COUNT"
   else 
