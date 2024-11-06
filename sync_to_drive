@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Source the formatting functions
+source "$(dirname "$0")/bash_utilities"
+
+# Define an array of source directories
+SOURCE_DIRS=("$HOME/Documents" "$HOME/Pictures")
+
+# Define the remote location (update this to match your actual remote name)
+REMOTE="GoogleDrive:HomeBackup"
+
+# Define the log file
+LOG_FILE="$HOME/logs/cron/rclone-drive-backup.log"
+
+# Create the log directory if it doesn't exist
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# Loop through each directory in the array and sync it to the remote
+for DIR in "${SOURCE_DIRS[@]}"; do
+  # Get the directory name (e.g., "Documents" or "Pictures") for use in the remote path
+  DIR_NAME=$(basename "$DIR")
+
+  # Log the start of the sync operation
+  echo "$(date): Starting sync of $DIR_NAME to Google Drive" >> "$LOG_FILE"
+
+  # Perform the sync operation
+  rclone sync "$DIR" "$REMOTE/$DIR_NAME" --log-file="$LOG_FILE" --log-level INFO
+
+  # Log the completion of the sync operation
+  echo "$(date): Completed sync of $DIR_NAME" >> "$LOG_FILE"
+done
