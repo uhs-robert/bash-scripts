@@ -162,7 +162,11 @@ print_title "STARTING SYSTEM UPDATES"
 print_header "Checking DNF Pending Updates"
 {
   dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for DNF updates..."
-  DNF_COUNT=$(dnf check-update | wc -l)
+  DNF_OUTPUT=$(dnf check-update)
+  DNF_COUNT=$(echo "$DNF_OUTPUT" | wc -l)
+  NVIDIA_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "nvidia" | wc -l)
+  KERNEL_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "kernel" | wc -l)
+  FONT_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "font" | wc -l)
   ICON="mintupdate-installing"
   if (( DNF_COUNT > 0 )); then
     print_header "Updating DNF Packages"
@@ -238,19 +242,21 @@ fi
 if (( DNF_COUNT > 0 )); then
   print_header "Checking for Driver or Kernel Changes"
   dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for driver or kernel updates..."
-  HAS_NVIDIA=$(echo "$DNF_OUTPUT" | grep -q -i 'nvidia')
-  HAS_KERNEL=$(echo "$DNF_OUTPUT" | grep -q -i 'kernel')
-  if echo "$DNF_OUTPUT" | grep -qi 'font'; then
+  if [ "$FONT_UPDATES" -gt 0 ]; then
     printf "${YELLOW}Font packages were updated. Rebuilding font cache...${ENDL}"
     fc-cache -fv
   fi
-  if [ "$HAS_NVIDIA" = true ] || [ "$HAS_KERNEL" = true ]; then
+  # Check for driver or kernel updates
+  if [ "$NVIDIA_UPDATES" -gt 0 ] || [ "$KERNEL_UPDATES" -gt 0 ]; then
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Driver and/or kernel update detected. Performing maintenance..."
-    if [ "$HAS_NVIDIA" = true ]; then
+    # Nvidia maintenance
+    if [ "$NVIDIA_UPDATES" -gt 0 ]; then
       printf "${YELLOW}NVIDIA package updates detected.${ENDL}"
       printf "${YELLOW}Refreshing akmods...${ENDL}"
       sudo akmods --force
-    elif [ "$HAS_KERNEL" = true ]; then
+    fi 
+    # Kernel maintenance
+    if [ "$KERNEL_UPDATES" -gt 0 ]; then
       printf "${YELLOW}Kernel package updates detected.${ENDL}"
     fi
     printf "${YELLOW}Performing dracut...${ENDL}"
