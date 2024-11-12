@@ -9,6 +9,7 @@ SKIP_FLATPAK=false
 SKIP_CLEAN_CACHE=false
 AUTO_CONFIRM=true
 EXIT_CODE=0
+NEEDS_REBOOT=false
 
 # Clean Up
 cleanup() {
@@ -29,7 +30,7 @@ cleanup() {
     printf "${GREEN}$TOTAL_UPDATES packages were updated. Log file: file://$LOG_FILE${ENDL}\n"
     
     # Check if a reboot is required
-    if [ -f /var/run/reboot-required ]; then
+    if [ "$NEEDS_REBOOT" = true ]; then
       printf "${ORANGE}Reboot required to apply updates.${ENDL}\n"
     fi
   fi
@@ -240,29 +241,38 @@ fi
 
 # Handle driver or kernel updates
 if (( DNF_COUNT > 0 )); then
-  print_header "Checking for Driver or Kernel Changes"
-  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for driver or kernel updates..."
+  print_header "Checking Font Updates"
+  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for font updates..."
   if [ "$FONT_UPDATES" -gt 0 ]; then
     printf "${YELLOW}Font packages were updated. Rebuilding font cache...${ENDL}"
     fc-cache -fv
+  else
+    echo "Nothing to do."
   fi
+
   # Check for driver or kernel updates
+  print_header "Checking for driver or kernel updates"
+  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for driver or kernel updates..."
   if [ "$NVIDIA_UPDATES" -gt 0 ] || [ "$KERNEL_UPDATES" -gt 0 ]; then
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Driver and/or kernel update detected. Performing maintenance..."
-    # Nvidia maintenance
+    
     if [ "$NVIDIA_UPDATES" -gt 0 ]; then
       printf "${YELLOW}NVIDIA package updates detected.${ENDL}"
       printf "${YELLOW}Refreshing akmods...${ENDL}"
       sudo akmods --force
     fi 
-    # Kernel maintenance
+    
     if [ "$KERNEL_UPDATES" -gt 0 ]; then
       printf "${YELLOW}Kernel package updates detected.${ENDL}"
     fi
+
     printf "${YELLOW}Performing dracut...${ENDL}"
     sudo dracut --force
     printf "${GREEN}Completed dracut!${ENDL}"
     dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Completed maintenance."
+    NEEDS_REBOOT=true
+  else 
+    echo "Nothing to do."
   fi
 fi
 
@@ -271,7 +281,6 @@ echo
 print_title "SYSTEM UPDATES COMPLETED"
 {
   TOTAL_UPDATES=$(( ${DNF_COUNT:-0} + ${FLATPAK_COUNT:-0} ))
-  NEEDS_REBOOT=$([ -f /var/run/reboot-required ] && printf true || printf false)
   if (( TOTAL_UPDATES <= 0 )); then
     RESULT="No updates found."
     rm "$LOG_FILE"
