@@ -1,0 +1,5 @@
+#!/bin/bash
+dir=~/Games/Pince
+exe="$dir"/PINCE-x86_64.AppImage
+cd "$dir"
+sudo -E "$exe"
