@@ -146,7 +146,7 @@ print_title "STARTING SYSTEM UPDATES"
   PROGRESS_ID=$(dunstify -a "System Update" -p -t 0 "System Update" "Starting system update...")
 
   # Begin logging
-  LOG_DIR="$HOME/logs"
+  LOG_DIR="$HOME/.log"
   mkdir -p "$LOG_DIR"
   LOG_FILE="$LOG_DIR/system_update_$(date +%F_%H-%M-%S).log"
   exec > >(tee -a "$LOG_FILE") 2>&1

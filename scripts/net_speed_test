@@ -26,7 +26,7 @@ fi
 print_title "BEGIN NETWORK SPEED TEST"
 
 # Generate the log file name with the current date
-LOG_FILE=~/logs/network_speed_$(date +%F).log
+LOG_FILE=~/.log/network_speed_$(date +%F).log
 
 # Install speedtest-cli if not already installed
 if ! command -v speedtest-cli &> /dev/null; then
