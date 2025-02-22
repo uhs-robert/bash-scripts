@@ -68,3 +68,11 @@ fzfcd() {
     fi
   fi
 }
+
+# Start Tmux
+start_tmux() {
+  # Check if tmux is running, and start it if not
+  if ! pgrep tmux >/dev/null; then
+    tmux start-server
+  fi
+}
