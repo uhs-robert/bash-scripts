@@ -9,10 +9,10 @@ source "$(dirname "$0")/bash_utilities"
 # Function to display help information
 show_help() {
   print_title "HELP INFORMATION"
-  
+
   print_header "Usage: $(basename $0) [OPTIONS] [DIRECTORY]"
   printf "${BLUE}This script grants executable permissions to each file in the specified directory (or './scripts' if not provided).${ENDL}"
-  
+
   print_header "Options:"
   printf "${BLUE}  -d <directory>      Specify the directory to process (default is './scripts').${ENDL}"
   printf "${BLUE}  -h, --help           Display this help message.${ENDL}"
@@ -22,23 +22,23 @@ show_help() {
 # Parse options
 while [[ "$#" -gt 0 ]]; do
   case $1 in
-    -d) 
-      shift
-      SCRIPTS_DIR="$1"
-      ;;
-    -h|--help) 
-      show_help
-      ;;
-    *) 
-      printf "${RED}Error: Invalid option: $1${ENDL}"
-      show_help
-      ;;
+  -d)
+    shift
+    SCRIPTS_DIR="$1"
+    ;;
+  -h | --help)
+    show_help
+    ;;
+  *)
+    printf "${RED}Error: Invalid option: $1${ENDL}"
+    show_help
+    ;;
   esac
   shift
 done
 
-# Default to './scripts' if no directory is provided
-SCRIPTS_DIR="${SCRIPTS_DIR:-./scripts}"
+# Default to the current directory './' if no directory is provided
+SCRIPTS_DIR="${SCRIPTS_DIR:-.}"
 
 # Check if the directory exists
 if [ ! -d "$SCRIPTS_DIR" ]; then
@@ -57,3 +57,4 @@ for file in "$SCRIPTS_DIR"/*; do
 done
 
 printf "${CYAN}All files in '$SCRIPTS_DIR' have been processed.${ENDL}"
+
