@@ -10,7 +10,7 @@ mapfile -t BINDINGS < <(grep '^bindd' "$HYPR_CONF" |
 printf '%s\n' "${BINDINGS[@]}" | tee /tmp/hypr_debug.log
 
 # Show in Wofi
-CHOICE=$(printf '%s\n' "${BINDINGS[@]}" | wofi --dmenu -i -p "Hyprland Keybinds:")
+CHOICE=$(printf '%s\n' "${BINDINGS[@]}" | wofi --dmenu -i -p "Hyprland Keybinds")
 
 # Extract command from selection
 CMD=$(echo "$CHOICE" | awk -F '→ ' '{print $2}' | awk -F ' [' '{print $1}')
