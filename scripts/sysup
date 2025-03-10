@@ -16,7 +16,7 @@ cleanup() {
 
   # Cancel notification if progress ID is set
   if [ -n "$PROGRESS_ID" ]; then
-    notify-send -C "$PROGRESS_ID"
+    notify-send "$PROGRESS_ID"
   fi
 
   # Calculate total updates (using defaults for unset variables)
@@ -43,10 +43,11 @@ give_terminal_exit_choices() {
   fi
   printf "${BLUE}1. Reboot${ENDL}"
   printf "${BLUE}2. Power-off${ENDL}"
-  printf "${GREEN}3. Exit (Done)${ENDL}"
+  printf "${YELLOW}3. Open Log directory${ENDL}"
+  printf "${GREEN}4. (y/n) Exit${ENDL}"
   exec </dev/tty
-  read -p "Enter your choice [1-3] (default is 3): " CHOICE
-  CHOICE=${CHOICE:-3}
+  read -p "Enter your choice [1-4] (default is 4): " CHOICE
+  CHOICE=${CHOICE:-4}
   case $CHOICE in
   1)
     printf "${GREEN}Rebooting system${ENDL}"
@@ -56,8 +57,15 @@ give_terminal_exit_choices() {
     printf "${GREEN}Powering off system${ENDL}"
     sudo poweroff
     ;;
-  3) printf "${GREEN}Exiting script${ENDL}" ;;
-  *) printf "${RED}Invalid choice. Please choose 1, 2, or 3.${ENDL}" ;;
+  3)
+    exec xdg-open "$LOG_DIR"
+    exit 0
+    ;;
+  4 | "y" | "yes" | "n" | "no")
+    exit 0
+    ;;
+
+  *) printf "${RED}Invalid choice. Please choose a numbered option.${ENDL}" ;;
   esac
 }
 
@@ -74,12 +82,15 @@ give_notification_exit_choices() {
 
   # Show notification
   PROGRESS_ID=$(notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON \
-    --action="open,📂 View Logs" \
-    --action="reboot,🔄 Reboot" \
-    --action="shutdown,💡 Power-off" \
+    --action="log=📂 View Logs" \
+    --action="reboot=🔄 Reboot" \
+    --action="shutdown=💡 Power-off" \
     "Update Complete" "$RESULT$REBOOT_MESSAGE" | tail -n1)
   case "$PROGRESS_ID" in
-  "open") xdg-open "$LOG_DIR" ;;
+  "log")
+    exec xdg-open "$LOG_DIR"
+    exit 0
+    ;;
   "reboot")
     printf "${GREEN}Rebooting system...${ENDL}"
     sudo reboot
@@ -88,7 +99,9 @@ give_notification_exit_choices() {
     printf "${GREEN}Powering off system${ENDL}"
     sudo poweroff
     ;;
-  *) printf "${GREEN}Exiting script.${ENDL}" ;;
+  *)
+    exit 0
+    ;;
   esac
 }
 
@@ -139,7 +152,7 @@ DNF_FLAGS=""
 
 # Handle exit signals
 trap 'printf "${RED}Update interrupted! Cleaning up...${ENDL}"; cleanup; exit 1' SIGINT SIGTERM
-trap 'printf "${BLUE}Exiting script.${ENDL}"; cleanup; exit 0' EXIT
+trap 'printf "${GREEN}Exiting script.${ENDL}"; cleanup; exit 0' EXIT
 
 # Check for and install necessary dependencies
 MISSING_PACKAGES=()
