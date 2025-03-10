@@ -8,27 +8,26 @@ SKIP_SECURITY=false
 SKIP_FLATPAK=false
 SKIP_CLEAN_CACHE=false
 AUTO_CONFIRM=true
-EXIT_CODE=0
 NEEDS_REBOOT=false
 
 # Clean Up
 cleanup() {
   print_title "CLEANING UP"
-  
+
   # Cancel notification if progress ID is set
   if [ -n "$PROGRESS_ID" ]; then
-    dunstify -C "$PROGRESS_ID"
+    notify-send -C "$PROGRESS_ID"
   fi
-  
+
   # Calculate total updates (using defaults for unset variables)
-  TOTAL_UPDATES=$(( ${DNF_COUNT:-0} + ${FLATPAK_COUNT:-0} ))
-  
-  if (( TOTAL_UPDATES <= 0 )); then
+  TOTAL_UPDATES=$((${DNF_COUNT:-0} + ${FLATPAK_COUNT:-0}))
+
+  if ((TOTAL_UPDATES <= 0)); then
     printf "${RED}No updates found, deleting log file.${ENDL}\n"
     [ -n "$LOG_FILE" ] && rm -f "$LOG_FILE"
-  else 
+  else
     printf "${GREEN}$TOTAL_UPDATES packages were updated. Log file: file://$LOG_FILE${ENDL}\n"
-    
+
     # Check if a reboot is required
     if [ "$NEEDS_REBOOT" = true ]; then
       printf "${ORANGE}Reboot required to apply updates.${ENDL}\n"
@@ -45,14 +44,20 @@ give_terminal_exit_choices() {
   printf "${BLUE}1. Reboot${ENDL}"
   printf "${BLUE}2. Power-off${ENDL}"
   printf "${GREEN}3. Exit (Done)${ENDL}"
-  exec < /dev/tty
+  exec </dev/tty
   read -p "Enter your choice [1-3] (default is 3): " CHOICE
   CHOICE=${CHOICE:-3}
   case $CHOICE in
-    1) printf "${GREEN}Rebooting system${ENDL}"; sudo reboot ;;
-    2) printf "${GREEN}Powering off system${ENDL}"; sudo poweroff ;;
-    3) printf "${GREEN}Exiting script${ENDL}" ;;
-    *) printf "${RED}Invalid choice. Please choose 1, 2, or 3.${ENDL}" ;;
+  1)
+    printf "${GREEN}Rebooting system${ENDL}"
+    sudo reboot
+    ;;
+  2)
+    printf "${GREEN}Powering off system${ENDL}"
+    sudo poweroff
+    ;;
+  3) printf "${GREEN}Exiting script${ENDL}" ;;
+  *) printf "${RED}Invalid choice. Please choose 1, 2, or 3.${ENDL}" ;;
   esac
 }
 
@@ -62,22 +67,28 @@ give_notification_exit_choices() {
   if [ "$NEEDS_REBOOT" = true ]; then
     ICON="system-reboot"
     REBOOT_MESSAGE="\nA system reboot is required to apply all updates."
-  else 
+  else
     ICON="mintupdate-up-to-date"
     REBOOT_MESSAGE=""
   fi
 
   # Show notification
-  PROGRESS_ID=$(dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON \
+  PROGRESS_ID=$(notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON \
     --action="open,📂 View Logs" \
     --action="reboot,🔄 Reboot" \
     --action="shutdown,💡 Power-off" \
     "Update Complete" "$RESULT$REBOOT_MESSAGE" | tail -n1)
   case "$PROGRESS_ID" in
-    "open") xdg-open "$LOG_DIR" ;;
-    "reboot") printf "${GREEN}Rebooting system...${ENDL}"; sudo reboot ;;
-    "shutdown") printf "${GREEN}Powering off system${ENDL}"; sudo poweroff ;;
-    *) printf "${GREEN}Exiting script.${ENDL}" ;;
+  "open") xdg-open "$LOG_DIR" ;;
+  "reboot")
+    printf "${GREEN}Rebooting system...${ENDL}"
+    sudo reboot
+    ;;
+  "shutdown")
+    printf "${GREEN}Powering off system${ENDL}"
+    sudo poweroff
+    ;;
+  *) printf "${GREEN}Exiting script.${ENDL}" ;;
   esac
 }
 
@@ -102,19 +113,22 @@ show_help() {
   printf "  ${BLUE}${cmd} -c${NC}                   Perform system updates without cleaning the DNF cache.${ENDL}"
   printf "  ${BLUE}${cmd} -n${NC}                   Perform system updates with user confirmation for each DNF operation.${ENDL}"
   printf "  ${BLUE}${cmd} -s -f -c${NC}             Combine multiple options to skip security updates, Flatpak updates, and DNF cache cleaning.${ENDL}"
-  
+
   exit 0
 }
 
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
-    -s|--skip-security) SKIP_SECURITY=true ;;
-    -f|--skip-flatpak) SKIP_FLATPAK=true ;;
-    -c|--skip-clean-cache) SKIP_CLEAN_CACHE=true ;;
-    -n|--no-confirm) AUTO_CONFIRM=false ;;
-    -h|--help) show_help ;;
-    *) printf "${RED}Unknown option: $1${ENDL}"; show_help ;;
+  -s | --skip-security) SKIP_SECURITY=true ;;
+  -f | --skip-flatpak) SKIP_FLATPAK=true ;;
+  -c | --skip-clean-cache) SKIP_CLEAN_CACHE=true ;;
+  -n | --no-confirm) AUTO_CONFIRM=false ;;
+  -h | --help) show_help ;;
+  *)
+    printf "${RED}Unknown option: $1${ENDL}"
+    show_help
+    ;;
   esac
   shift
 done
@@ -130,7 +144,7 @@ trap 'printf "${BLUE}Exiting script.${ENDL}"; cleanup; exit 0' EXIT
 # Check for and install necessary dependencies
 MISSING_PACKAGES=()
 for pkg in rpmconf flatpak remove-retired-packages; do
-  if ! command -v "$pkg" &> /dev/null; then
+  if ! command -v "$pkg" &>/dev/null; then
     MISSING_PACKAGES+=("$pkg")
   fi
 done
@@ -143,7 +157,7 @@ fi
 print_title "STARTING SYSTEM UPDATES"
 {
   ICON="mintupdate-checking"
-  PROGRESS_ID=$(dunstify -a "System Update" -p -t 0 "System Update" "Starting system update...")
+  PROGRESS_ID=$(notify-send -a "System Update" -p -t 0 "System Update" "Starting system update...")
 
   # Begin logging
   LOG_DIR="$HOME/.log"
@@ -154,7 +168,7 @@ print_title "STARTING SYSTEM UPDATES"
   # Refresh DNF cache
   if [ "$SKIP_CLEAN_CACHE" = false ]; then
     print_header "Refreshing DNF Cache"
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Refreshing DNF cache..."
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Refreshing DNF cache..."
     sudo dnf makecache --refresh $DNF_FLAGS
   fi
 }
@@ -162,47 +176,45 @@ print_title "STARTING SYSTEM UPDATES"
 # Handle DNF Updates
 print_header "Checking DNF Pending Updates"
 {
-  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for DNF updates..."
+  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for DNF updates..."
   DNF_OUTPUT=$(dnf check-update)
   DNF_COUNT=$(echo "$DNF_OUTPUT" | grep -Ec ' updates$')
   NVIDIA_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "nvidia" | wc -l)
   KERNEL_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "kernel" | wc -l)
   FONT_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "font" | wc -l)
   ICON="mintupdate-installing"
-  if (( DNF_COUNT > 0 )); then
+  if ((DNF_COUNT > 0)); then
     print_header "Updating DNF Packages"
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF updating $DNF_COUNT packages..."
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF updating $DNF_COUNT packages..."
     sudo dnf update $DNF_FLAGS
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF update completed. Updated $DNF_COUNT packages."
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF update completed. Updated $DNF_COUNT packages."
   else
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "No DNF updates found."
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "No DNF updates found."
     echo "Nothing to do."
   fi
 }
-
 
 # Handle leftover RPM configuration files
 print_header "Handling Leftover RPM Configuration Files"
 {
-  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Handling RPM configuration files..."
+  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Handling RPM configuration files..."
   RPM_FILES=$(sudo rpmconf -a | tee /dev/tty)
   if [ -n "$RPM_FILES" ]; then
     echo "$RPM_FILES"
-  else 
+  else
     echo "Nothing to do."
   fi
 }
 
-
 # Check and install security updates
 if [ "$SKIP_SECURITY" = false ]; then
   print_header "Security Updates"
-  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for security updates..."
+  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for security updates..."
   SECURITY_UPDATES=$(sudo dnf check-update --security)
   if echo "$SECURITY_UPDATES" | grep -q "Security"; then
     sudo dnf update --security $DNF_FLAGS
     printf "${GREEN}Installed security updates.${ENDL}"
-  else 
+  else
     echo "Nothing to do."
   fi
 fi
@@ -210,15 +222,14 @@ fi
 # Clean up old packages
 print_header "Cleaning Up Old Packages"
 {
-  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Cleaning up old packages..."
+  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Cleaning up old packages..."
   AUTO_REMOVE=$(sudo dnf autoremove $DNF_FLAGS)
   if ! echo "$AUTO_REMOVE" | grep -q "Nothing to do"; then
     printf "${YELLOW}%s${ENDL}" "$AUTO_REMOVE"
-  else 
+  else
     echo "$AUTO_REMOVE"
   fi
 }
-
 
 # Handle Flatpak updates
 if [ "$SKIP_FLATPAK" = false ]; then
@@ -226,23 +237,23 @@ if [ "$SKIP_FLATPAK" = false ]; then
   FLATPAK_PENDING=$(flatpak remote-ls --updates | wc -l)
   if [ "$FLATPAK_PENDING" -gt 0 ]; then
     print_header "Updating Flatpak Packages"
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Updating $FLATPAK_PENDING Flatpak packages..."
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Updating $FLATPAK_PENDING Flatpak packages..."
     FLATPAK_OUTPUT=$(flatpak update -y --noninteractive $DNF_FLAGS)
     FLATPAK_COUNT=$(echo "$FLATPAK_OUTPUT" | grep -c "Updated:")
     printf "${GREEN}Flatpak update completed. Updated packages: %s${ENDL}" "$FLATPAK_COUNT"
-  else 
+  else
     echo "Nothing to do."
     FLATPAK_COUNT=0
   fi
   print_header "Removing Unused Flatpak Packages"
-  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Removing unused Flatpak packages..."
+  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Removing unused Flatpak packages..."
   flatpak uninstall --unused -y $DNF_FLAGS
 fi
 
 # Handle driver or kernel updates
-if (( DNF_COUNT > 0 )); then
+if ((DNF_COUNT > 0)); then
   print_header "Checking Font Updates"
-  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for font updates..."
+  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for font updates..."
   if [ "$FONT_UPDATES" -gt 0 ]; then
     printf "${YELLOW}Font packages were updated. Rebuilding font cache...${ENDL}"
     fc-cache -fv
@@ -252,16 +263,16 @@ if (( DNF_COUNT > 0 )); then
 
   # Check for driver or kernel updates
   print_header "Checking for driver or kernel updates"
-  dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for driver or kernel updates..."
+  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for driver or kernel updates..."
   if [ "$NVIDIA_UPDATES" -gt 0 ] || [ "$KERNEL_UPDATES" -gt 0 ]; then
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Driver and/or kernel update detected. Performing maintenance..."
-    
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Driver and/or kernel update detected. Performing maintenance..."
+
     if [ "$NVIDIA_UPDATES" -gt 0 ]; then
       printf "${YELLOW}NVIDIA package updates detected.${ENDL}"
       printf "${YELLOW}Refreshing akmods...${ENDL}"
       sudo akmods --force
-    fi 
-    
+    fi
+
     if [ "$KERNEL_UPDATES" -gt 0 ]; then
       printf "${YELLOW}Kernel package updates detected.${ENDL}"
     fi
@@ -269,9 +280,9 @@ if (( DNF_COUNT > 0 )); then
     printf "${YELLOW}Performing dracut...${ENDL}"
     sudo dracut --force
     printf "${GREEN}Completed dracut!${ENDL}"
-    dunstify -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Completed maintenance."
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Completed maintenance."
     NEEDS_REBOOT=true
-  else 
+  else
     echo "Nothing to do."
   fi
 fi
@@ -280,8 +291,8 @@ fi
 echo
 print_title "SYSTEM UPDATES COMPLETED"
 {
-  TOTAL_UPDATES=$(( ${DNF_COUNT:-0} + ${FLATPAK_COUNT:-0} ))
-  if (( TOTAL_UPDATES <= 0 )); then
+  TOTAL_UPDATES=$((${DNF_COUNT:-0} + ${FLATPAK_COUNT:-0}))
+  if ((TOTAL_UPDATES <= 0)); then
     RESULT="No updates found."
     rm "$LOG_FILE"
   else
@@ -296,7 +307,7 @@ print_title "SYSTEM UPDATES COMPLETED"
   fi
 
   # Start listening to user input
-  give_notification_exit_choices & 
+  give_notification_exit_choices &
   give_terminal_exit_choices &
   wait -n
 }
