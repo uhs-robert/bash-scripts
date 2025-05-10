@@ -276,24 +276,25 @@ if ((DNF_COUNT > 0)); then
 
   # Check for driver or kernel updates
   print_header "Checking for driver or kernel updates"
-  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for driver or kernel updates..."
+  notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i "$ICON" "System Update" "Checking for driver or kernel updates..."
+
   if [ "$NVIDIA_UPDATES" -gt 0 ] || [ "$KERNEL_UPDATES" -gt 0 ]; then
-    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Driver and/or kernel update detected. Performing maintenance..."
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i "$ICON" "System Update" "Driver and/or kernel update detected. Performing maintenance..."
+
+    # Get the latest installed kernel version
+    NEW_KERNEL="$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | sort -V | tail -1)"
 
     if [ "$NVIDIA_UPDATES" -gt 0 ]; then
       printf "${YELLOW}NVIDIA package updates detected.${ENDL}"
-      printf "${YELLOW}Refreshing akmods...${ENDL}"
-      sudo akmods --force --kernels $(rpm -q --qf "%{VERSION}-%{RELEASE}.%{ARCH}\n" kernel-core | sort -V | tail -1)
+      printf "${YELLOW}Refreshing akmods for kernel: %s${ENDL}" "$NEW_KERNEL"
+      sudo akmods --force --kernels "$NEW_KERNEL"
     fi
 
-    if [ "$KERNEL_UPDATES" -gt 0 ]; then
-      printf "${YELLOW}Kernel package updates detected.${ENDL}"
-    fi
+    printf "${YELLOW}Running dracut for kernel: %s${ENDL}" "$NEW_KERNEL"
+    sudo dracut --force "/boot/initramfs-${NEW_KERNEL}.img" "$NEW_KERNEL"
 
-    printf "${YELLOW}Performing dracut...${ENDL}"
-    sudo dracut --force
     printf "${GREEN}Completed dracut!${ENDL}"
-    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Completed maintenance."
+    notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i "$ICON" "System Update" "Completed maintenance."
     NEEDS_REBOOT=true
   else
     echo "Nothing to do."
