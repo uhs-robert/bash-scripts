@@ -283,7 +283,7 @@ if ((DNF_COUNT > 0)); then
     if [ "$NVIDIA_UPDATES" -gt 0 ]; then
       printf "${YELLOW}NVIDIA package updates detected.${ENDL}"
       printf "${YELLOW}Refreshing akmods...${ENDL}"
-      sudo akmods --force
+      sudo akmods --force --kernels $(rpm -q --qf "%{VERSION}-%{RELEASE}.%{ARCH}\n" kernel-core | sort -V | tail -1)
     fi
 
     if [ "$KERNEL_UPDATES" -gt 0 ]; then
