@@ -190,9 +190,9 @@ print_header "Checking DNF Pending Updates"
   [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for DNF updates..."
   DNF_OUTPUT=$(dnf check-update)
   DNF_COUNT=$(echo "$DNF_OUTPUT" | grep -Ec ' updates$')
-  NVIDIA_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "nvidia" | wc -l)
-  KERNEL_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "kernel" | wc -l)
-  FONT_UPDATES=$(echo "$DNF_OUTPUT" | grep -i "font" | wc -l)
+  NVIDIA_UPDATES=$(echo "$DNF_OUTPUT" | grep -ic "nvidia")
+  KERNEL_UPDATES=$(echo "$DNF_OUTPUT" | grep -ic "kernel")
+  FONT_UPDATES=$(echo "$DNF_OUTPUT" | grep -ic "font")
   ICON="mintupdate-installing"
   if ((DNF_COUNT > 0)); then
     print_header "Updating DNF Packages"
@@ -222,7 +222,7 @@ if [ "$SKIP_SECURITY" = false ]; then
   print_header "Security Updates"
   [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for security updates..."
   SECURITY_UPDATES=$(sudo dnf check-update --security)
-  if echo "$SECURITY_UPDATES" | grep -q "Security"; then
+  if echo "$SECURITY_UPDATES" | grep -iq "security"; then
     sudo dnf update --security $DNF_FLAGS
     printf "${GREEN}Installed security updates.${ENDL}"
   else
@@ -235,7 +235,7 @@ print_header "Cleaning Up Old Packages"
 {
   [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Cleaning up old packages..."
   AUTO_REMOVE=$(sudo dnf autoremove $DNF_FLAGS)
-  if ! echo "$AUTO_REMOVE" | grep -q "Nothing to do"; then
+  if ! echo "$AUTO_REMOVE" | grep -iq "Nothing to do"; then
     printf "${YELLOW}%s${ENDL}" "$AUTO_REMOVE"
   else
     echo "$AUTO_REMOVE"
@@ -250,7 +250,7 @@ if [ "$SKIP_FLATPAK" = false ]; then
     print_header "Updating Flatpak Packages"
     [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Updating $FLATPAK_PENDING Flatpak packages..."
     FLATPAK_OUTPUT=$(flatpak update -y --noninteractive $DNF_FLAGS)
-    FLATPAK_COUNT=$(echo "$FLATPAK_OUTPUT" | grep -c "Updated:")
+    FLATPAK_COUNT=$(echo "$FLATPAK_OUTPUT" | grep -ic "Updated:")
     printf "${GREEN}Flatpak update completed. Updated packages: %s${ENDL}" "$FLATPAK_COUNT"
   else
     echo "Nothing to do."
