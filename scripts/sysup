@@ -222,7 +222,7 @@ if [ "$SKIP_SECURITY" = false ]; then
   print_header "Security Updates"
   [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for security updates..."
   SECURITY_UPDATES=$(sudo dnf check-update --security)
-  if echo "$SECURITY_UPDATES" | grep -iq "security"; then
+  if echo "$SECURITY_UPDATES" | grep -q "Security"; then
     sudo dnf update --security $DNF_FLAGS
     printf "${GREEN}Installed security updates.${ENDL}"
   else
