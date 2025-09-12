@@ -285,7 +285,7 @@ if ((DNF_COUNT > 0)); then
     printf "${YELLOW}Refreshing akmods for kernel: %s${ENDL}" "$NEW_KERNEL"
     sudo akmods --force --kernel "$NEW_KERNEL"
     printf "${YELLOW}Running dracut for kernel: %s${ENDL}" "$NEW_KERNEL"
-    sudo dracut --force "/boot/initramfs-${NEW_KERNEL}.img" "$NEW_KERNEL"
+    sudo dracut --force --add bluetooth "/boot/initramfs-${NEW_KERNEL}.img" "$NEW_KERNEL"
     printf "${GREEN}Completed dracut!${ENDL}"
     [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i "$ICON" "System Update" "Completed maintenance."
     NEEDS_REBOOT=true
