@@ -1,0 +1,10 @@
+# AI
+GEMINI.md
+CLAUDE.md
+QWEN.md
+*.ai.md
+.claude
+.gemini
+.qwen
+
+.env
