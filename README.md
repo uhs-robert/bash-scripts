@@ -15,8 +15,8 @@ After cloning the repository, you need to set executable permissions for the scr
 2. Run the following command to make each script file executable: `chmod +x *`
 3. _(Optional)_ To save the permissions to your folder, run this command from the folder: `chmod -R +x /bash-scripts/scripts`
 
-   > [!TIP]
-   > This command ensures that you have the necessary permissions to execute the scripts. Adjust the file path to point to where you placed the `/bash-scripts/scripts` folder.
+> [!TIP]
+> This command ensures that you have the necessary permissions to execute the scripts. Adjust the file path to point to where you placed the `/bash-scripts/scripts` folder.
 
 # Bash Scripts
 
@@ -76,8 +76,9 @@ With the setup above, make sure the `base_path` variable inside of the script ma
   - **`rom`** (default): Moves ROM files to the emulator folder.
   - **`music`**: Moves music files to the emulator folder.
 
-    > [!NOTE]
-    > The script assumes the directory is in `run/media/$username/SHARE`. This should be modified to match your directory for BATOCERA.
+> [!NOTE]
+> The script assumes the directory is in `run/media/$username/SHARE`.
+> This should be modified to match your directory for `BATOCERA`.
 
 ## clean_empty_dirs
 
@@ -147,7 +148,8 @@ This script performs a comprehensive system update on Fedora, including DNF pack
 - `-c, --skip-clean-cache`: Skip cleaning the DNF cache.
 - `-n, --no-confirm`: Run DNF commands without the `-y` flag to require user confirmat
 
-> [!WARNING] Only works with Linux Fedora.
+> [!WARNING]
+>  Only works with Fedora.
 
 ## xtract
 
