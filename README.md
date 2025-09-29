@@ -1,6 +1,6 @@
 # Setup Instructions
 
-These scripts are designed for Linux to accomplish various tasks quickly. Many scripts can be used by any Linux distribution by some scripts like `sysup` are for Fedora specifically as that's my flavor of choice.
+These scripts are designed for Linux to accomplish various tasks quickly. Many scripts can be used by any Linux distribution but some scripts like `sysup` are for Fedora specifically as that's my flavor of choice. These are highly specific to my workflows and serve to accomplish one-off jobs quickly. Perhaps these may be of some use to somebody.
 
 ## Cloning the Repository
 
@@ -14,6 +14,7 @@ After cloning the repository, you need to set executable permissions for the scr
 1. Navigate to the cloned directory: `cd bash-scripts`
 2. Run the following command to make each script file executable: `chmod +x *`
 3. _(Optional)_ To save the permissions to your folder, run this command from the folder: `chmod -R +x /bash-scripts/scripts`
+
    > [!TIP]
    > This command ensures that you have the necessary permissions to execute the scripts. Adjust the file path to point to where you placed the `/bash-scripts/scripts` folder.
 
@@ -21,7 +22,8 @@ After cloning the repository, you need to set executable permissions for the scr
 
 Each script comes with a -h or --help option to see how they work and how to use them.
 
-> [!NOTE] > `bash_utilities` is the only exception. This script houses general functions for the other scripts to make maintenance easier for me.
+> [!NOTE]
+> `bash_utilities` is the only exception. This script houses general functions for the other scripts to make maintenance easier for me.
 
 ## bash_utilities
 
@@ -73,6 +75,7 @@ With the setup above, make sure the `base_path` variable inside of the script ma
 - **`[type]`**: The base folder type. Can be:
   - **`rom`** (default): Moves ROM files to the emulator folder.
   - **`music`**: Moves music files to the emulator folder.
+
     > [!NOTE]
     > The script assumes the directory is in `run/media/$username/SHARE`. This should be modified to match your directory for BATOCERA.
 
