@@ -1,4 +1,5 @@
 #!/bin/bash
+# scripts/functions.sh
 
 # Run net speed test
 netspeed() {
@@ -6,7 +7,7 @@ netspeed() {
 }
 
 # Get public IP
-myip() {
+getip() {
   curl -s checkip.amazonaws.com
 }
 
