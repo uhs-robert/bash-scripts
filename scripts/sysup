@@ -25,7 +25,7 @@ cleanup() {
 
     # Check if a reboot is required
     if [ "$NEEDS_REBOOT" = true ]; then
-      printf "${ORANGE}Reboot required to apply updates.${ENDL}\n"
+      printf "${BRIGHT_YELLOW}Reboot required to apply updates.${ENDL}\n"
     fi
   fi
 }
@@ -34,7 +34,7 @@ cleanup() {
 give_terminal_exit_choices() {
   printf "\nWhat would you like to do next?${ENDL}"
   if [ "$NEEDS_REBOOT" = true ]; then
-    printf "${ORANGE}A system reboot is required to apply all updates.${ENDL}"
+    printf "${BRIGHT_YELLOW}A system reboot is required to apply all updates.${ENDL}"
   fi
   printf "${BLUE}1. Reboot${ENDL}"
   printf "${BLUE}2. Power-off${ENDL}"
