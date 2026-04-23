@@ -100,6 +100,34 @@ give_notification_exit_choices() {
   esac
 }
 
+# Run a command with a pseudo-TTY so interactive programs (like dnf) stream
+# real-time output and preserve colors even when stdout is piped to tee.
+# Uses pty.fork() instead of pty.spawn() so we can copy the real terminal's
+# window size onto the PTY before the process starts.
+pty_run() {
+  python3 - "$@" <<'PYEOF'
+import pty, sys, os, fcntl, termios
+pid, master_fd = pty.fork()
+if pid == 0:
+    os.execvp(sys.argv[1], sys.argv[1:])
+try:
+    tty_fd = os.open('/dev/tty', os.O_RDWR)
+    ws = fcntl.ioctl(tty_fd, termios.TIOCGWINSZ, b'\x00' * 8)
+    os.close(tty_fd)
+    fcntl.ioctl(master_fd, termios.TIOCSWINSZ, ws)
+except OSError:
+    pass
+try:
+    pty._copy(master_fd)
+except OSError:
+    pass
+finally:
+    os.close(master_fd)
+_, status = os.waitpid(pid, 0)
+raise SystemExit(os.waitstatus_to_exitcode(status))
+PYEOF
+}
+
 # Function to display help information
 show_help() {
   print_title "HELP INFORMATION"
@@ -175,13 +203,13 @@ print_title "STARTING SYSTEM UPDATES"
   LOG_DIR="$HOME/.log"
   mkdir -p "$LOG_DIR"
   LOG_FILE="$LOG_DIR/system_update_$(date +%F_%H-%M-%S).log"
-  exec > >(tee -a "$LOG_FILE") 2>&1
+  exec > >(stdbuf -oL tee -a "$LOG_FILE") 2>&1
 
   # Refresh DNF cache
   if [ "$SKIP_CLEAN_CACHE" = false ]; then
     print_header "Refreshing DNF Cache"
     [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Refreshing DNF cache..."
-    sudo dnf makecache --refresh $DNF_FLAGS
+    pty_run sudo dnf makecache --refresh $DNF_FLAGS
   fi
 }
 
@@ -198,7 +226,7 @@ print_header "Checking DNF Pending Updates"
   if ((DNF_COUNT > 0)); then
     print_header "Updating DNF Packages"
     [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF updating $DNF_COUNT packages..."
-    sudo dnf update $DNF_FLAGS
+    pty_run sudo dnf update $DNF_FLAGS
     [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "DNF update completed. Updated $DNF_COUNT packages."
   else
     [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "No DNF updates found."
@@ -224,7 +252,7 @@ if [ "$SKIP_SECURITY" = false ]; then
   [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for security updates..."
   SECURITY_UPDATES=$(sudo dnf check-update --security)
   if echo "$SECURITY_UPDATES" | grep -q "Security"; then
-    sudo dnf update --security $DNF_FLAGS
+    pty_run sudo dnf update --security $DNF_FLAGS
     printf '%sInstalled security updates.%s' "$GREEN" "$ENDL"
   else
     echo "Nothing to do."
