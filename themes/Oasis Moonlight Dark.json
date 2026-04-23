@@ -10,8 +10,8 @@
   "theme_primary": "#7FA3C9",
   "theme_secondary": "#F0E68C",
   "theme_accent": "#FFA0A0",
-  "error": "#FFA0A0",
-  "warning": "#F0E68C",
+  "error": "#FF7979",
+  "warning": "#F8B471",
   "info": "#81C0FF",
   "hint": "#8FD1C7",
   "ok": "#A3E39A",
@@ -48,3 +48,4 @@
   "color14": "#8FD1C7",
   "color15": "#F7F4E9"
 }
+

@@ -65,7 +65,7 @@ module Style
     80
   end
 
-  def print_title(title, color: SECONDARY)
+  def print_title(title, color: INFO)
     # Support passing color names as symbols or strings (e.g., :primary or "primary")
     color = const_get(color.to_s.upcase) if color.is_a?(Symbol) || (color.is_a?(String) && !color.start_with?("\e["))
 
@@ -81,5 +81,10 @@ module Style
   def print_header(text)
     puts "\n#{PRIMARY}#{text}#{NC}"
     puts "#{PRIMARY}#{'─' * text.length}#{NC}"
+  end
+
+  def print_subheader(text)
+    puts "\n #{SECONDARY}#{text}#{NC}"
+    puts " #{SECONDARY}#{'─' * text.length}#{NC}"
   end
 end
