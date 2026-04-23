@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'optparse'
+require_relative 'lib/terminal_style'
+
+output_dir = '.'
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [OPTIONS] [FILE|URL]"
+  opts.on('-o', '--output DIR', 'Output directory') { |d| output_dir = d }
+  opts.on('-h', '--help') do
+    Style.print_title 'HELP INFORMATION', color: :primary
+    puts opts
+    exit
+  end
+end.parse!
+
+input = ARGV.first
+unless input
+  puts "#{Style::RED}Error: Provide a URL or file of URLs.#{Style::NC}"
+  exit 1
+end
+
+DL_OPTS = ['-x', '--audio-format', 'mp3', '--embed-thumbnail'].freeze
+
+def download(url, output_dir)
+  puts "Downloading: #{url}"
+  system('yt-dlp', *DL_OPTS, '-o', "#{output_dir}/%(title)s.%(ext)s", url)
+end
+
+if File.file?(input)
+  File.foreach(input) do |line|
+    url = line.strip
+    download(url, output_dir) unless url.empty?
+  end
+else
+  download(input, output_dir)
+end
+
+puts "\n"
+Style.print_title 'DOWNLOADS COMPLETE'
+puts "\nFiles saved to: #{output_dir}"

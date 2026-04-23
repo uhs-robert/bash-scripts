@@ -1,0 +1,66 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'optparse'
+require_relative 'lib/terminal_style'
+
+options = { delete_original: false, file_type: '*', format: 'zip' }
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [OPTIONS] [DIRECTORY]"
+  opts.on('-d', 'Delete originals after compression')          { options[:delete_original] = true }
+  opts.on('-f', '--file-type TYPE', 'File glob to compress')   { |t| options[:file_type] = t }
+  opts.on('-a', '--archive-format FMT', 'zip|7z|rar|tar|tar.gz|tar.bz2') { |f| options[:format] = f }
+  opts.on('-h', '--help') do
+    Style.print_title 'HELP INFORMATION', color: :primary
+    puts opts
+    exit
+  end
+end.parse!
+
+target_dir = ARGV.first || '.'
+
+def run_colorized(cmd)
+  IO.popen(cmd, err: %i[child out]) do |io|
+    io.each_line do |line|
+      if line.match?(/total bytes=\d+.*savings/)
+        print "    #{Style::HINT}#{line.chomp}#{Style::NC}\n"
+      elsif line.match?(/error/i)
+        print "    #{Style::ERROR}#{line.chomp}#{Style::NC}\n"
+      elsif line.match?(/adding/i)
+        print "  #{line}"
+      else
+        print "    #{line}"
+      end
+    end
+  end
+end
+
+COMPRESSORS = {
+  'zip' => ->(src, dst) { run_colorized(['zip', '-v', "#{dst}.zip", src]) },
+  '7z' => ->(src, dst) { run_colorized(['7z', 'a', "#{dst}.7z", src]) },
+  'rar' => ->(src, dst) { run_colorized(['rar', 'a', "#{dst}.rar", src]) },
+  'tar' => ->(src, dst) { run_colorized(['tar', '-cvf', "#{dst}.tar", src]) },
+  'tar.gz' => ->(src, dst) { run_colorized(['tar', '-czvf', "#{dst}.tar.gz", src]) },
+  'tar.bz2' => ->(src, dst) { run_colorized(['tar', '-cjvf', "#{dst}.tar.bz2", src]) }
+}.freeze
+
+Style.print_title 'BEGIN FILE COMPRESSION'
+Style.print_header("Compressing as #{options[:format]}")
+
+Dir.glob(File.join(target_dir, options[:file_type])).select { |f| File.file?(f) }.each do |file|
+  base       = File.join(File.dirname(file), File.basename(file, '.*'))
+  compressor = COMPRESSORS[options[:format]]
+
+  unless compressor
+    puts "#{Style::RED}Unsupported format: #{options[:format]}#{Style::NC}"
+    next
+  end
+
+  puts "#{Style::SECONDARY}#{file}#{Style::NC}"
+  compressor.call(file, base)
+  File.delete(file) if options[:delete_original]
+end
+
+puts "\n"
+Style.print_title 'FILE COMPRESSION COMPLETE', color: :ok

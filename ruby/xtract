@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'optparse'
+require 'fileutils'
+require_relative 'lib/terminal_style'
+
+use_directory = false
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [-d] [FILE]"
+  opts.on('-d', 'Extract into named subdirectories') { use_directory = true }
+  opts.on('-h', '--help') do
+    Style.print_title 'HELP INFORMATION', color: :primary
+    puts opts
+    exit
+  end
+end.parse!
+
+def run_indented(cmd)
+  IO.popen(cmd, err: %i[child out]) do |io|
+    io.each_line do |line|
+      next if line.match?(/^Archive:/i)
+
+      print "  #{line}"
+    end
+  end
+end
+
+EXTRACTORS = {
+  '.zip' => ->(f, d) { run_indented(['unzip', '-o', f, '-d', d]) },
+  '.tar' => ->(f, d) { run_indented(['tar', '-xf', f, '-C', d]) },
+  '.tar.gz' => ->(f, d) { run_indented(['tar', '-xzf', f, '-C', d]) },
+  '.tgz' => ->(f, d) { run_indented(['tar', '-xzf', f, '-C', d]) },
+  '.tar.bz2' => ->(f, d) { run_indented(['tar', '-xjf', f, '-C', d]) },
+  '.tar.xz' => ->(f, d) { run_indented(['tar', '-xJf', f, '-C', d]) },
+  '.7z' => ->(f, d) { run_indented(['7z', 'x', f, "-o#{d}"]) },
+  '.rar' => ->(f, d) { run_indented(['unrar', 'x', f, d]) },
+  '.gz' => lambda { |f, d|
+    IO.popen(['gunzip', '-c', f]) do |io|
+      File.write(File.join(d, File.basename(f, '.gz')),  io.read)
+    end
+  },
+  '.bz2' => lambda { |f, d|
+    IO.popen(['bunzip2', '-c', f]) do |io|
+      File.write(File.join(d, File.basename(f, '.bz2')), io.read)
+    end
+  }
+}.freeze
+
+files = if ARGV.first
+          [ARGV.first]
+        else
+          Dir.glob('*').select { |f| File.file?(f) && EXTRACTORS.keys.any? { |ext| f.end_with?(ext) } }
+        end
+
+Style.print_title 'BEGIN FILE EXTRACTION'
+
+Style.print_header("Extracting Files in #{Dir.pwd}")
+
+if files.empty?
+  puts "#{Style::FG_DIM}Nothing to do.#{Style::NC}"
+  exit
+end
+
+files.each do |file|
+  ext  = EXTRACTORS.keys.find { |k| file.end_with?(k) }
+  dest = use_directory ? file.delete_suffix(ext.to_s) : File.dirname(file)
+  FileUtils.mkdir_p(dest) if use_directory
+
+  extractor = EXTRACTORS[ext]
+  if extractor
+    puts "#{Style::INFO}#{file}#{Style::NC}"
+    extractor.call(file, dest)
+  else
+    puts "#{Style::RED}Unsupported type: #{file}#{Style::NC}"
+  end
+end
+
+puts "\n"
+Style.print_title 'FILE EXTRACTION COMPLETE', color: :ok

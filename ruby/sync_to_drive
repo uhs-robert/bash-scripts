@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'fileutils'
+require_relative 'lib/terminal_style'
+
+SOURCE_DIRS = [File.expand_path('~/Documents'), File.expand_path('~/Pictures')].freeze
+EXCLUDES    = ['/github-fmc**', '/git-misc**', '/github-uphill**'].freeze
+REMOTE      = 'GoogleDrive:HomeBackup'
+
+log_dir  = File.expand_path('~/.log/cron')
+log_file = File.join(log_dir, "rclone-drive-backup_#{Time.now.strftime('%F_%H-%M-%S')}.log")
+FileUtils.mkdir_p(log_dir)
+
+puts "#{Style::BLUE}#{Time.now}#{Style::NC}: Starting backup..."
+puts "Log: #{Style::CYAN}#{log_file}#{Style::NC}"
+
+SOURCE_DIRS.each do |dir|
+  name     = File.basename(dir)
+  excludes = EXCLUDES.flat_map { |e| ['--exclude', e] }
+
+  puts "#{Style::BLUE}#{Time.now}#{Style::NC}: Syncing #{Style::YELLOW}#{name}#{Style::NC} → #{Style::OK}#{REMOTE}#{Style::NC}"
+
+  system('rclone', 'sync', dir, "#{REMOTE}/#{name}", *excludes,
+         "--log-file=#{log_file}", '--log-level', 'INFO')
+
+  puts "#{Style::OK}#{Time.now}: Completed #{name}#{Style::NC}"
+end
+
+puts "#{Style::OK}#{Time.now}: Backup complete. Log: #{log_file}#{Style::NC}"

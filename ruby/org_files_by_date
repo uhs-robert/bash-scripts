@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'optparse'
+require 'fileutils'
+require 'find'
+require_relative 'lib/terminal_style'
+
+options = { copy: false, delete_days: nil }
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [OPTIONS] [DIRECTORY]"
+  opts.on('-c', '--copy', 'Copy files instead of moving') { options[:copy] = true }
+  opts.on('-d', '--delete DAYS', Integer, 'Delete files older than N days') { |d| options[:delete_days] = d }
+  opts.on('-h', '--help') do
+    Style.print_title 'HELP INFORMATION', color: :primary
+    Style.print_header "Usage: #{File.basename($PROGRAM_NAME)} [OPTIONS] [DIRECTORY]"
+    puts opts
+    exit
+  end
+end.parse!
+
+dir = File.expand_path(ARGV.first || '.')
+
+Style.print_title 'BEGIN FILE ORGANIZATION'
+Style.print_header "Organizing files in #{dir} by date..."
+
+files = []
+Find.find(dir) { |path| files << path if File.file?(path) }
+
+acted = false
+
+files.each do |file|
+  mtime  = File.stat(file).mtime
+  target = File.join(dir, mtime.year.to_s, format('%02d', mtime.month))
+  FileUtils.mkdir_p(target)
+
+  dest = File.join(target, File.basename(file))
+  next if File.expand_path(file) == File.expand_path(dest)
+
+  acted = true
+  if options[:copy]
+    FileUtils.cp(file, target)
+    puts "#{Style::BOLD}#{Style::ACCENT}Copied: #{Style::NC}#{Style::HINT}#{Style::ITALIC}#{file}#{Style::NC} → #{Style::INFO}#{target}#{Style::NC}"
+  else
+    FileUtils.mv(file, target)
+    puts "#{Style::BOLD}#{Style::SECONDARY}Moved: #{Style::NC}#{Style::HINT}#{Style::ITALIC}#{file}#{Style::NC} → #{Style::INFO}#{target}#{Style::NC}"
+  end
+end
+
+unless acted
+  puts "Nothing to do.#{Style::NC}"
+  # exit
+end
+
+if options[:delete_days]
+  Style.print_header "Deleting files older than #{options[:delete_days]} days"
+  cutoff = Time.now - (options[:delete_days] * 86_400)
+  Find.find(dir) do |path|
+    next unless File.file?(path) && File.mtime(path) < cutoff
+
+    File.delete(path)
+    puts "#{Style::BOLD}#{Style::RED}Deleted: #{Style::NC}#{Style::BRIGHT_RED}#{path}#{Style::NC}"
+  end
+end
+
+puts "\n"
+Style.print_title 'FILE ORGANIZATION COMPLETE', color: :ok
