@@ -1,0 +1,386 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'optparse'
+require 'open3'
+require 'pty'
+require 'io/console'
+require 'fileutils'
+require_relative 'lib/terminal_style'
+
+# Desktop notification helper for notify-send based system update messages.
+module Notification
+  DEFAULTS = {
+    app: 'System Update', replace_id: nil, icon: nil,
+    body: '', actions: {}, timeout: 0, silent: true
+  }.freeze
+
+  module_function
+
+  def show(title:, **opts)
+    opts = DEFAULTS.merge(opts)
+    return if opts[:silent]
+
+    IO.popen(build_command(title, opts), &:read).strip
+  end
+
+  def build_command(title, opts)
+    cmd = ['notify-send', '-a', opts[:app], '-t', opts[:timeout].to_s]
+    cmd += ['-r', opts[:replace_id].to_s] if opts[:replace_id]
+    cmd += ['-i', opts[:icon]] if opts[:icon]
+    opts[:actions].each { |key, label| cmd << "--action=#{key}=#{label}" }
+    cmd += [title, opts[:body]]
+  end
+
+  private_class_method :build_command
+end
+
+# Provides shell-related helper methods including process execution and output capture.
+module Shell
+  module_function
+
+  def pty_run(*args)
+    rows, cols = IO.console&.winsize || [24, 80]
+    PTY.spawn(*args) do |reader, _writer, pid|
+      setup_reader(reader, rows, cols)
+      copy_stream(reader)
+      Process.wait(pid)
+    end
+  end
+
+  def setup_reader(reader, rows, cols)
+    reader.winsize = [rows, cols]
+  rescue Errno::ENOTTY
+    # Ignore if terminal doesn't support winsize
+  end
+
+  def copy_stream(reader)
+    loop { print reader.readpartial(4096) }
+  rescue Errno::EIO, EOFError
+    # End of stream
+  end
+
+  def capture(*args)
+    stdout, _stderr, _status = Open3.capture3(*args)
+    stdout
+  end
+end
+
+# Handles notifications and terminal prompts
+module UserInterface
+  module_function
+
+  def prompt_user(needs_reboot, log_file, options)
+    reboot_msg = needs_reboot ? "\nA system reboot is required to finish updates." : ''
+    t1 = Thread.new { show_final_notification(needs_reboot, reboot_msg, options, log_file) }
+    t2 = Thread.new { show_terminal_prompt(reboot_msg, log_file) }
+    [t1, t2].each(&:join)
+  end
+
+  def show_final_notification(needs_reboot, reboot_msg, options, log_file)
+    return if options[:silent_run]
+
+    icon = needs_reboot ? 'system-reboot' : 'mintupdate-up-to-date'
+    actions = { 'log' => '📂 View Logs', 'reboot' => '🔄 Reboot', 'shutdown' => '💡 Power-off' }
+    action = Notification.show(title: 'Update Complete', body: reboot_msg,
+                               icon: icon, silent: false, actions: actions)
+    handle_notification_action(action, log_file)
+  end
+
+  def handle_notification_action(action, log_file)
+    case action
+    when 'log' then exec('xdg-open', File.dirname(log_file))
+    when 'reboot'
+      puts "#{Style::GREEN}Rebooting...#{Style::NC}"
+      exec('sudo', 'reboot')
+    when 'shutdown'
+      puts "#{Style::GREEN}Powering off...#{Style::NC}"
+      exec('sudo', 'poweroff')
+    end
+  end
+
+  def show_terminal_prompt(reboot_msg, log_file)
+    puts "#{Style::RED}#{reboot_msg}#{Style::NC}\n" unless reboot_msg.empty?
+    puts "\nWhat would you like to do next?"
+    puts "  - #{Style::SECONDARY}󰐥 Poweroff (p)#{Style::NC}"
+    puts "  - #{Style::SECONDARY} Reboot (r)#{Style::NC}"
+    puts "  - #{Style::ACCENT}󰝰 Open Log Directory (l)#{Style::NC}"
+    puts "  - #{Style::PRIMARY} Exit (y/n)#{Style::NC}"
+
+    $stdin.reopen('/dev/tty')
+    handle_user_choice($stdin.gets&.strip, log_file)
+  end
+
+  def handle_user_choice(choice, log_file)
+    case choice
+    when 'r', 'reboot'
+      puts "#{Style::GREEN}Rebooting...#{Style::NC}"
+      exec('sudo', 'reboot')
+    when 'p', 'poweroff'
+      puts "#{Style::GREEN}Powering off...#{Style::NC}"
+      exec('sudo', 'poweroff')
+    when 'l', 'log' then exec('xdg-open', File.dirname(log_file))
+    else exit 0
+    end
+  end
+
+  def show_help(opts)
+    Style.print_title ' SYSTEM UPDATE: HELP', color: :primary
+    Style.print_header "Usage: #{File.basename($PROGRAM_NAME)} [OPTIONS]"
+    desc = 'Fedora updator: Handles DNF, security, kernel/driver, flatpak, font cache, and nvidia akmods.'
+    puts "#{Style::ACCENT}#{desc}#{Style::NC}"
+    Style.print_header 'Options'
+    puts opts
+    exit
+  end
+end
+
+# Logic for DNF package management
+class DnfManager
+  attr_reader :count, :needs_reboot
+
+  def initialize(updater)
+    @updater = updater
+    @count = 0
+    @needs_reboot = false
+  end
+
+  def refresh_cache
+    return if @updater.options[:skip_clean_cache]
+
+    @updater.step('󰃨 Refreshing DNF Cache', 'Refreshing DNF cache...', icon: 'mintupdate-checking') do
+      Shell.pty_run('sudo', 'dnf', 'makecache', '--refresh', *@updater.dnf_flags)
+    end
+  end
+
+  def update
+    @updater.step(' Checking for DNF Updates', 'Checking for DNF updates...') do
+      output = Shell.capture('dnf', 'check-update')
+      parse_output(output)
+      @count.positive? ? perform_update : notify_none
+    end
+  end
+
+  def security
+    return if @updater.options[:skip_security]
+
+    @updater.step('󰒃 Security Updates', 'Checking for security updates...') do
+      output = Shell.capture('sudo', 'dnf', 'check-update', '--security')
+      if output.include?('Security')
+        Shell.pty_run('sudo', 'dnf', 'update', '--security', *@updater.dnf_flags)
+        puts "#{Style::GREEN}Installed security updates.#{Style::NC}"
+      else
+        puts 'Nothing to do.'
+      end
+    end
+  end
+
+  def autoremove
+    @updater.step(' Cleaning Up Old Packages', 'Cleaning up old packages...') do
+      output = Shell.capture('sudo', 'dnf', 'autoremove', *@updater.dnf_flags).strip
+      color = output.downcase.include?('nothing to do') ? '' : Style::YELLOW
+      puts "#{color}#{output}#{Style::NC}"
+    end
+  end
+
+  def post_process
+    return unless @count.positive?
+
+    if @font_updates.positive?
+      @updater.step('󰃨 Rebuilding Font Cache', 'Rebuilding font cache...') do
+        system('fc-cache', '-fv')
+      end
+    end
+    perform_kernel_maintenance if @nvidia_updates.positive? || @kernel_updates.positive?
+  end
+
+  private
+
+  def parse_output(output)
+    @count = output.scan(/ updates$/).length
+    @nvidia_updates = output.downcase.scan('nvidia').length
+    @kernel_updates = output.downcase.scan('kernel').length
+    @font_updates = output.downcase.scan('font').length
+  end
+
+  def perform_update
+    @updater.step('󰚰 Updating DNF Packages', "DNF updating #{@count} packages...") do
+      Shell.pty_run('sudo', 'dnf', 'update', *@updater.dnf_flags)
+      @updater.notify("DNF update complete. #{@count} packages updated.")
+    end
+  end
+
+  def notify_none
+    @updater.notify('No DNF updates found.')
+    puts 'Nothing to do.'
+  end
+
+  def perform_kernel_maintenance
+    @updater.step(' Performing Driver/Kernel Maintenance', 'Maintenance detected...') do
+      new_kernel = Shell.capture('rpm', '-q', '--qf', '%<VERSION>s-%<RELEASE>s.%<ARCH>s\n', 'kernel-core')
+                        .lines.map(&:strip).max
+      puts "#{Style::YELLOW}Refreshing akmods for: #{new_kernel}#{Style::NC}"
+      system('sudo', 'akmods', '--force', '--kernel', new_kernel)
+      puts "#{Style::YELLOW}Running dracut for: #{new_kernel}#{Style::NC}"
+      system('sudo', 'dracut', '--force', '--add', 'bluetooth', "/boot/initramfs-#{new_kernel}.img", new_kernel)
+      @needs_reboot = true
+    end
+  end
+end
+
+# Logic for Flatpak package management
+class FlatpakManager
+  attr_reader :count
+
+  def initialize(updater)
+    @updater = updater
+    @count = 0
+  end
+
+  def update
+    return if @updater.options[:skip_flatpak]
+
+    @updater.step(' Checking Flatpak Updates') do
+      pending = Shell.capture('flatpak', 'remote-ls', '--updates').lines.length
+      pending.positive? ? perform_update(pending) : puts('Nothing to do.')
+      cleanup
+    end
+  end
+
+  private
+
+  def perform_update(pending)
+    @updater.step('󰚰 Updating Flatpak Packages', "Updating #{pending} Flatpak packages...") do
+      output = Shell.capture('flatpak', 'update', '-y', '--noninteractive')
+      @count = output.downcase.scan('updated:').length
+      puts "#{Style::GREEN}Flatpak complete. #{@count} updated.#{Style::NC}"
+    end
+  end
+
+  def cleanup
+    @updater.step(' Cleaning Up Unused Flatpak Packages', 'Cleaning up unused Flatpak packages...') do
+      system('flatpak', 'uninstall', '--unused', '-y')
+    end
+  end
+end
+
+# Orchestrates the system update process
+class SystemUpdater
+  include UserInterface
+  attr_reader :options, :dnf_flags
+
+  def initialize
+    @options = parse_options
+    @dnf_flags = @options[:auto_confirm] ? ['-y'] : []
+    @progress_id = nil
+    @log_file = setup_logging
+    @dnf = DnfManager.new(self)
+    @flatpak = FlatpakManager.new(self)
+  end
+
+  def run
+    setup_traps
+    check_dependencies
+    Style.print_title '󰌢 SYSTEM UPDATE'
+    notify('Running system update...', icon: 'mintupdate-checking')
+    run_sequence
+    finish_update
+  end
+
+  def step(title, notification_body = nil, icon: 'mintupdate-installing')
+    Style.print_header title
+    notify(notification_body, icon: icon) if notification_body
+    yield if block_given?
+  end
+
+  def notify(body, icon: 'mintupdate-installing', actions: {}, timeout: 0)
+    @progress_id = Notification.show(
+      title: 'System Update', body: body, replace_id: @progress_id,
+      icon: icon, silent: @options[:silent_run], actions: actions, timeout: timeout
+    )
+  end
+
+  private
+
+  def run_sequence
+    @dnf.refresh_cache
+    @dnf.update
+    clean_leftover_rpm_configs
+    @dnf.security
+    @dnf.autoremove
+    @flatpak.update
+    @dnf.post_process
+  end
+
+  def parse_options
+    opts_hash = { auto_confirm: true, silent_run: true, skip_security: false,
+                  skip_flatpak: false, skip_clean_cache: false }
+    parser = OptionParser.new do |opts|
+      opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [OPTIONS]"
+      define_options(opts, opts_hash)
+    end
+    parser.parse!
+    opts_hash
+  end
+
+  def define_options(opts, opts_hash)
+    opts.on('-n', '--enable-notifications') { opts_hash[:silent_run] = false }
+    opts.on('-s', '--skip-security')        { opts_hash[:skip_security] = true }
+    opts.on('-f', '--skip-flatpak')         { opts_hash[:skip_flatpak] = true }
+    opts.on('-c', '--skip-clean-cache')     { opts_hash[:skip_clean_cache] = true }
+    opts.on('-m', '--manual-confirmation')  { opts_hash[:auto_confirm] = false }
+    opts.on('-h', '--help')                 { show_help(opts) }
+  end
+
+  def clean_leftover_rpm_configs
+    step(' Cleaning Leftover RPM Configuration Files', 'Cleaning RPM configuration files...') do
+      rpm_files = Shell.capture('sudo', 'rpmconf', '-a')
+      puts rpm_files.empty? ? 'Nothing to do.' : rpm_files
+    end
+  end
+
+  def check_dependencies
+    missing = %w[rpmconf flatpak remove-retired-packages].reject { |cmd| system("command -v #{cmd} > /dev/null 2>&1") }
+    return if missing.empty?
+
+    puts "Installing missing dependencies: #{missing.join(' ')}"
+    system('sudo', 'dnf', 'install', *@dnf_flags, *missing)
+  end
+
+  def setup_logging
+    log_dir = File.join(Dir.home, '.log')
+    FileUtils.mkdir_p(log_dir)
+    File.join(log_dir, "system_update_#{Time.now.strftime('%F_%H-%M-%S')}.log")
+  end
+
+  def setup_traps
+    at_exit { cleanup }
+    trap('INT') { interrupt }
+    trap('TERM') { interrupt }
+  end
+
+  def interrupt
+    puts "\n#{Style::RED}Update interrupted!#{Style::NC}"
+    exit 1
+  end
+
+  def cleanup
+    total = @dnf.count + @flatpak.count
+    if total <= 0
+      File.delete(@log_file) if File.exist?(@log_file)
+    else
+      puts "#{Style::GREEN}#{total} updated. Log: file://#{@log_file}#{Style::NC}"
+      puts "#{Style::BRIGHT_YELLOW}Reboot required.#{Style::NC}" if @dnf.needs_reboot
+    end
+  end
+
+  def finish_update
+    puts
+    Style.print_title(' DONE', color: Style::GREEN)
+    prompt_user(@dnf.needs_reboot, @log_file, @options)
+  end
+end
+
+# ── Execution ─────────────────────────────────────────────────────────────────
+
+SystemUpdater.new.run
