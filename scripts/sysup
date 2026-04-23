@@ -21,35 +21,35 @@ cleanup() {
   if ((TOTAL_UPDATES <= 0)); then
     [ -n "$LOG_FILE" ] && rm -f "$LOG_FILE"
   else
-    printf "${GREEN}$TOTAL_UPDATES packages were updated. Log file: file://$LOG_FILE${ENDL}\n"
+    printf '%s%s packages were updated. Log file: file://%s%s\n' "$GREEN" "$TOTAL_UPDATES" "$LOG_FILE" "$ENDL"
 
     # Check if a reboot is required
     if [ "$NEEDS_REBOOT" = true ]; then
-      printf "${BRIGHT_YELLOW}Reboot required to apply updates.${ENDL}\n"
+      printf '%sReboot required to apply updates.%s\n' "$BRIGHT_YELLOW" "$ENDL"
     fi
   fi
 }
 
 # Function to handle terminal actions
 give_terminal_exit_choices() {
-  printf "\nWhat would you like to do next?${ENDL}"
+  printf '\nWhat would you like to do next?%s' "$ENDL"
   if [ "$NEEDS_REBOOT" = true ]; then
-    printf "${BRIGHT_YELLOW}A system reboot is required to apply all updates.${ENDL}"
+    printf '%sA system reboot is required to apply all updates.%s' "$BRIGHT_YELLOW" "$ENDL"
   fi
-  printf "${BLUE}1. Reboot${ENDL}"
-  printf "${BLUE}2. Power-off${ENDL}"
-  printf "${YELLOW}3. Open Log directory${ENDL}"
-  printf "${GREEN}4. (y/n) Exit${ENDL}"
+  printf '%s1. Reboot%s' "$BLUE" "$ENDL"
+  printf '%s2. Power-off%s' "$BLUE" "$ENDL"
+  printf '%s3. Open Log directory%s' "$YELLOW" "$ENDL"
+  printf '%s4. (y/n) Exit%s' "$GREEN" "$ENDL"
   exec </dev/tty
-  read -p "Enter your choice [1-4] (default is 4): " CHOICE
+  read -rp "Enter your choice [1-4] (default is 4): " CHOICE
   CHOICE=${CHOICE:-4}
   case $CHOICE in
   1)
-    printf "${GREEN}Rebooting system${ENDL}"
+    printf '%sRebooting system%s' "$GREEN" "$ENDL"
     sudo reboot
     ;;
   2)
-    printf "${GREEN}Powering off system${ENDL}"
+    printf '%sPowering off system%s' "$GREEN" "$ENDL"
     sudo poweroff
     ;;
   3)
@@ -60,7 +60,7 @@ give_terminal_exit_choices() {
     exit 0
     ;;
 
-  *) printf "${RED}Invalid choice. Please choose a numbered option.${ENDL}" ;;
+  *) printf '%sInvalid choice. Please choose a numbered option.%s' "$RED" "$ENDL" ;;
   esac
 }
 
@@ -87,11 +87,11 @@ give_notification_exit_choices() {
     exit 0
     ;;
   "reboot")
-    printf "${GREEN}Rebooting system...${ENDL}"
+    printf '%sRebooting system...%s' "$GREEN" "$ENDL"
     sudo reboot
     ;;
   "shutdown")
-    printf "${GREEN}Powering off system${ENDL}"
+    printf '%sPowering off system%s' "$GREEN" "$ENDL"
     sudo poweroff
     ;;
   *)
@@ -104,25 +104,26 @@ give_notification_exit_choices() {
 show_help() {
   print_title "HELP INFORMATION"
   print_header "Usage: $(basename "$0") [OPTIONS]"
-  printf "${GREEN}This script performs a comprehensive system update on Fedora, including DNF package updates, security updates, cleanup of old packages, updating Flatpak packages, and cleaning up cached package data.${ENDL}"
+  printf '%sThis script performs a comprehensive system update on Fedora, including DNF package updates, security updates, cleanup of old packages, updating Flatpak packages, and cleaning up cached package data.%s' "$GREEN" "$ENDL"
 
   print_header "Options:"
-  printf "  ${BOLD}${BLUE}-n, --enable-notifications${NC}        Enables notifications.${ENDL}"
-  printf "  ${BOLD}${BLUE}-s, --skip-security${NC}        Skip security updates.${ENDL}"
-  printf "  ${BOLD}${BLUE}-f, --skip-flatpak${NC}         Skip Flatpak updates.${ENDL}"
-  printf "  ${BOLD}${BLUE}-c, --skip-clean-cache${NC}     Skip cleaning the DNF cache.${ENDL}"
-  printf "  ${BOLD}${BLUE}-m, --manual-confirmation${NC}           Run DNF commands without the '-y' flag to require user confirmation.${ENDL}"
-  printf "  ${BOLD}${BLUE}-h, --help${NC}                 Display this help message.${ENDL}\n"
+  printf '  %s%s-n, --enable-notifications%s        Enables notifications.%s' "$BOLD" "$BLUE" "$NC" "$ENDL"
+  printf '  %s%s-s, --skip-security%s        Skip security updates.%s' "$BOLD" "$BLUE" "$NC" "$ENDL"
+  printf '  %s%s-f, --skip-flatpak%s         Skip Flatpak updates.%s' "$BOLD" "$BLUE" "$NC" "$ENDL"
+  printf '  %s%s-c, --skip-clean-cache%s     Skip cleaning the DNF cache.%s' "$BOLD" "$BLUE" "$NC" "$ENDL"
+  printf "  %s%s-m, --manual-confirmation%s           Run DNF commands without the '-y' flag to require user confirmation.%s" "$BOLD" "$BLUE" "$NC" "$ENDL"
+  printf '  %s%s-h, --help%s                 Display this help message.%s\n' "$BOLD" "$BLUE" "$NC" "$ENDL"
 
   print_header "Examples:"
-  local cmd=$(basename "$0")
-  printf "  ${BLUE}${cmd}${NC}                      Run the script to perform system updates with auto-confirmation.${ENDL}"
-  printf "  ${BLUE}${cmd} -n${NC}                   Perform system updates with notifications.${ENDL}"
-  printf "  ${BLUE}${cmd} -s${NC}                   Perform system updates without checking for security updates.${ENDL}"
-  printf "  ${BLUE}${cmd} -f${NC}                   Perform system updates without updating Flatpak packages.${ENDL}"
-  printf "  ${BLUE}${cmd} -c${NC}                   Perform system updates without cleaning the DNF cache.${ENDL}"
-  printf "  ${BLUE}${cmd} -m${NC}                   Perform system updates with user confirmation for each DNF operation.${ENDL}"
-  printf "  ${BLUE}${cmd} -s -f -c${NC}             Combine multiple options to skip security updates, Flatpak updates, and DNF cache cleaning.${ENDL}"
+  local cmd
+  cmd=$(basename "$0")
+  printf '  %s%s%s                      Run the script to perform system updates with auto-confirmation.%s' "$BLUE" "$cmd" "$NC" "$ENDL"
+  printf '  %s%s -n%s                   Perform system updates with notifications.%s' "$BLUE" "$cmd" "$NC" "$ENDL"
+  printf '  %s%s -s%s                   Perform system updates without checking for security updates.%s' "$BLUE" "$cmd" "$NC" "$ENDL"
+  printf '  %s%s -f%s                   Perform system updates without updating Flatpak packages.%s' "$BLUE" "$cmd" "$NC" "$ENDL"
+  printf '  %s%s -c%s                   Perform system updates without cleaning the DNF cache.%s' "$BLUE" "$cmd" "$NC" "$ENDL"
+  printf '  %s%s -m%s                   Perform system updates with user confirmation for each DNF operation.%s' "$BLUE" "$cmd" "$NC" "$ENDL"
+  printf '  %s%s -s -f -c%s             Combine multiple options to skip security updates, Flatpak updates, and DNF cache cleaning.%s' "$BLUE" "$cmd" "$NC" "$ENDL"
 
   exit 0
 }
@@ -137,7 +138,7 @@ while [[ "$#" -gt 0 ]]; do
   -m | --manual-confirmation) AUTO_CONFIRM=false ;;
   -h | --help) show_help ;;
   *)
-    printf "${RED}Unknown option: $1${ENDL}"
+    printf '%sUnknown option: %s%s' "$RED" "$1" "$ENDL"
     show_help
     ;;
   esac
@@ -149,8 +150,8 @@ DNF_FLAGS=""
 [[ "$AUTO_CONFIRM" == true ]] && DNF_FLAGS="-y"
 
 # Handle exit signals
-trap 'printf "${RED}Update interrupted! Cleaning up...${ENDL}"; cleanup; exit 1' SIGINT SIGTERM
-trap 'printf "${GREEN}Exiting script.${ENDL}"; cleanup; exit 0' EXIT
+trap 'printf "%sUpdate interrupted! Cleaning up...%s" "$RED" "$ENDL"; cleanup; exit 1' SIGINT SIGTERM
+trap 'printf "%sExiting script.%s" "$GREEN" "$ENDL"; cleanup; exit 0' EXIT
 
 # Check for and install necessary dependencies
 MISSING_PACKAGES=()
@@ -224,7 +225,7 @@ if [ "$SKIP_SECURITY" = false ]; then
   SECURITY_UPDATES=$(sudo dnf check-update --security)
   if echo "$SECURITY_UPDATES" | grep -q "Security"; then
     sudo dnf update --security $DNF_FLAGS
-    printf "${GREEN}Installed security updates.${ENDL}"
+    printf '%sInstalled security updates.%s' "$GREEN" "$ENDL"
   else
     echo "Nothing to do."
   fi
@@ -236,7 +237,7 @@ print_header "Cleaning Up Old Packages"
   [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Cleaning up old packages..."
   AUTO_REMOVE=$(sudo dnf autoremove $DNF_FLAGS)
   if ! echo "$AUTO_REMOVE" | grep -iq "Nothing to do"; then
-    printf "${YELLOW}%s${ENDL}" "$AUTO_REMOVE"
+    printf '%s%s%s' "$YELLOW" "$AUTO_REMOVE" "$ENDL"
   else
     echo "$AUTO_REMOVE"
   fi
@@ -251,7 +252,7 @@ if [ "$SKIP_FLATPAK" = false ]; then
     [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Updating $FLATPAK_PENDING Flatpak packages..."
     FLATPAK_OUTPUT=$(flatpak update -y --noninteractive $DNF_FLAGS)
     FLATPAK_COUNT=$(echo "$FLATPAK_OUTPUT" | grep -ic "Updated:")
-    printf "${GREEN}Flatpak update completed. Updated packages: %s${ENDL}" "$FLATPAK_COUNT"
+    printf '%sFlatpak update completed. Updated packages: %s%s' "$GREEN" "$FLATPAK_COUNT" "$ENDL"
   else
     echo "Nothing to do."
     FLATPAK_COUNT=0
@@ -266,7 +267,7 @@ if ((DNF_COUNT > 0)); then
   print_header "Checking Font Updates"
   [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i $ICON "System Update" "Checking for font updates..."
   if [ "$FONT_UPDATES" -gt 0 ]; then
-    printf "${YELLOW}Font packages were updated. Rebuilding font cache...${ENDL}"
+    printf '%sFont packages were updated. Rebuilding font cache...%s' "$YELLOW" "$ENDL"
     fc-cache -fv
   else
     echo "Nothing to do."
@@ -282,11 +283,11 @@ if ((DNF_COUNT > 0)); then
 
     # Get the latest installed kernel version
     NEW_KERNEL="$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | sort -V | tail -1)"
-    printf "${YELLOW}Refreshing akmods for kernel: %s${ENDL}" "$NEW_KERNEL"
+    printf '%sRefreshing akmods for kernel: %s%s' "$YELLOW" "$NEW_KERNEL" "$ENDL"
     sudo akmods --force --kernel "$NEW_KERNEL"
-    printf "${YELLOW}Running dracut for kernel: %s${ENDL}" "$NEW_KERNEL"
+    printf '%sRunning dracut for kernel: %s%s' "$YELLOW" "$NEW_KERNEL" "$ENDL"
     sudo dracut --force --add bluetooth "/boot/initramfs-${NEW_KERNEL}.img" "$NEW_KERNEL"
-    printf "${GREEN}Completed dracut!${ENDL}"
+    printf '%sCompleted dracut!%s' "$GREEN" "$ENDL"
     [ "${SILENT_RUN,,}" = "false" ] && notify-send -a "System Update" -r "$PROGRESS_ID" -t 0 -i "$ICON" "System Update" "Completed maintenance."
     NEEDS_REBOOT=true
   else
@@ -307,9 +308,9 @@ print_title "SYSTEM UPDATES COMPLETED"
     # Show log file
     print_header "Log File Saved"
     {
-      printf "${YELLOW}Open Log directory: file://%s${ENDL}" "$LOG_DIR"
-      printf "${YELLOW}View Log file: file://%s${ENDL}" "$LOG_FILE"
-      printf "${ENDL}"
+      printf '%sOpen Log directory: file://%s%s' "$YELLOW" "$LOG_DIR" "$ENDL"
+      printf '%sView Log file: file://%s%s' "$YELLOW" "$LOG_FILE" "$ENDL"
+      printf '%s' "$ENDL"
     }
   fi
 
