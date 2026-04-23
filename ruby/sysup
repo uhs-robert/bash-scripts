@@ -365,7 +365,7 @@ class SystemUpdater
     opts.on('-s', '--skip-security')        { opts_hash[:skip_security] = true }
     opts.on('-f', '--skip-flatpak')         { opts_hash[:skip_flatpak] = true }
     opts.on('-c', '--skip-clean-cache')     { opts_hash[:skip_clean_cache] = true }
-    opts.on('-m', '--manual-confirmation')  { opts_hash[:auto_confirm] = false }
+    opts.on('-i', '--interactive')          { opts_hash[:auto_confirm] = false }
     opts.on('-h', '--help')                 { show_help(opts) }
   end
 
