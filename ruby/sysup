@@ -288,8 +288,11 @@ class FlatpakManager
 
   def perform_update(pending)
     @updater.notify("Updating #{pending} Flatpak packages...")
-    output = Shell.capture('flatpak', 'update', '-y', '--noninteractive')
-    @count = output.downcase.scan('updated:').length
+    output = Shell.with_spinner('Updating Flatpak packages...') do
+      Shell.capture('flatpak', 'update', '-y', '--noninteractive')
+    end
+    puts output.strip unless output.strip.empty?
+    @count = pending
     puts "#{Style::OK}Flatpak complete. #{@count} updated.#{Style::NC}"
     @updater.notify("Flatpak update complete. #{@count} packages updated.")
   end
