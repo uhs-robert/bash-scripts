@@ -56,6 +56,8 @@ module Style
   FG_DIM  = fg(C['fg_dim'])
   FG_MUTED = fg(C['fg_muted'])
 
+  @first_title = true
+
   module_function
 
   def terminal_width
@@ -75,7 +77,9 @@ module Style
     pad_left = pad_total / 2
     pad_right = pad_total - pad_left
 
-    puts "#{color}#{BOLD}#{'─' * pad_left} #{upper} #{'─' * pad_right}#{NC}"
+    prefix = Style.instance_variable_get(:@first_title) ? '' : "\n"
+    Style.instance_variable_set(:@first_title, false)
+    puts "#{prefix}#{color}#{BOLD}#{'─' * pad_left} #{upper} #{'─' * pad_right}#{NC}"
   end
 
   def print_header(text)
