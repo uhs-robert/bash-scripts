@@ -149,7 +149,7 @@ This script performs a comprehensive system update on Fedora, including DNF pack
 - `-n, --no-confirm`: Run DNF commands without the `-y` flag to require user confirmat
 
 > [!WARNING]
->  Only works with Fedora.
+> Only works with Fedora.
 
 ## xtract
 
