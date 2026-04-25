@@ -460,17 +460,21 @@ class SystemUpdater
     exit 1
   end
 
+  def any_updates?
+    @dnf.count + @flatpak.count > 0
+  end
+
   def cleanup
     $stdout = STDOUT
     $stderr = STDERR
     @log_fh&.close
 
-    total = @dnf.count + @flatpak.count
-    if total <= 0
-      File.delete(@log_file) if File.exist?(@log_file)
-    else
+    if any_updates?
+      total = @dnf.count + @flatpak.count
       puts "#{Style::OK}#{total} updated. Log: file://#{@log_file}#{Style::NC}"
       puts "#{Style::WARNING}Reboot required.#{Style::NC}" if @dnf.needs_reboot
+    else
+      File.delete(@log_file) if File.exist?(@log_file)
     end
   end
 
