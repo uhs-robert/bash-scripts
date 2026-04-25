@@ -477,6 +477,7 @@ class SystemUpdater
   def finish_update
     puts
     Style.print_title(' DONE', color: Style::OK)
+    $stdout.flush
     prompt_user(@dnf.needs_reboot, @log_file, @options)
   end
 end
