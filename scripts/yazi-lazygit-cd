@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+#
+# yazi-lazygit-cd — open lazygit from yazi and cd to the selected repo on exit
+#
+# Usage: add to yazi keymap (e.g. ~/.config/yazi/keymap.toml):
+#
+#   { on = [ "g", "l" ], run = "shell '~/.local/bin/yazi-lazygit-cd' --block --confirm=false", desc = "Lazygit" }
+#
+# Adjust the path to match where this script is installed.
+# After lazygit exits, yazi will cd into whichever repo was most recently open.
+
+lazygit
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/lazygit/state.yml"
+
+repo="$(
+  awk '
+    /^recentrepos:[[:space:]]*$/ {
+      in_recent = 1
+      next
+    }
+
+    in_recent && /^[[:space:]]*-[[:space:]]+/ {
+      sub(/^[[:space:]]*-[[:space:]]+/, "")
+      gsub(/^"|"$/, "")
+      print
+      exit
+    }
+
+    in_recent && /^[^[:space:]-]/ {
+      exit
+    }
+  ' "$state"
+)"
+
+if [ -n "$repo" ] && [ -d "$repo" ]; then
+  ya emit cd "$repo"
+fi
+
+exit 0
