@@ -2,7 +2,7 @@
 
 # Define user preferences
 TERMINAL=kitty
-LOCATIONS=(/ ~ ~/Documents ~/Documents/github-uphill)
+LOCATIONS=(/ ~ ~/Documents ~/Development)
 
 # Collect only first-level directories, explicitly including `~`
 FOLDERS=$(

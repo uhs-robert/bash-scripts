@@ -5,7 +5,7 @@ require 'fileutils'
 require_relative 'lib/terminal_style'
 
 SOURCE_DIRS = [File.expand_path('~/Documents'), File.expand_path('~/Pictures')].freeze
-EXCLUDES    = ['/github-fmc**', '/git-misc**', '/github-uphill**'].freeze
+EXCLUDES    = ['/github-fmc**', '/git-misc**', '/Development**'].freeze
 REMOTE      = 'GoogleDrive:HomeBackup'
 
 log_dir  = File.expand_path('~/.log/cron')
